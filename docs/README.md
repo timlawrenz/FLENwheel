@@ -62,19 +62,23 @@
 - ✅ Documentation complete
 - ✅ Architecture defined
 - ✅ Correct models identified
+- ✅ **Ecosystem discovered** (multiple specialized LoRAs available!)
 - ❓ Qwen-Image-Edit-2509 not yet validated
+- ❓ Ecosystem models not yet tested
 - ❓ Base model quality unknown
-- 📅 Week 1: Validation phase (5-7 hours)
+- 📅 **Next: Week 1 - Ecosystem survey & validation (7-10 hours)**
 
 ### Models to Download
-- `Qwen/Qwen-Image-Edit-2509` (~14GB)
-- `dx8152/Qwen-Edit-2509-Multiple-angles` (~100-500MB)
-- FLUX.1-dev (already have via ai-toolkit)
+- `Qwen/Qwen-Image-Edit-2509` (~14GB) - Base model
+- `dx8152/Qwen-Edit-2509-Multiple-angles` (~100-500MB) - Angle changes
+- Survey: https://huggingface.co/models?pipeline_tag=image-to-image&sort=trending&search=qwen
+  - Identify 3-5 more relevant models (face, lighting, etc.)
 
 ### Critical Questions
-1. Is base Qwen-Image-Edit-2509 good enough?
-2. Does dx8152 LoRA improve quality sufficiently?
-3. Do we need custom LoRA from day 1?
+1. **Which ecosystem LoRAs work best for character consistency?**
+2. Can we combine multiple specialized LoRAs effectively?
+3. Do face-segmentation LoRAs help with identity preservation?
+4. Should we use existing, combined, custom, or hybrid approach?
 
 ### Next Physical Steps
 ```bash
@@ -94,7 +98,13 @@ huggingface-cli download dx8152/Qwen-Edit-2509-Multiple-angles
 
 ## Document History
 
-- **2025-11-16**: Initial documentation created
+- **2025-11-16 (PM)**: **Ecosystem discovery** - Multiple specialized Qwen-Edit LoRAs found
+  - Added qwen-ecosystem-analysis.md
+  - Updated all docs with multi-LoRA strategies
+  - Expanded validation plan to test ecosystem
+  - New strategic options beyond custom training
+  
+- **2025-11-16 (AM)**: Initial documentation created
   - Established dual-flywheel architecture
   - Identified correct Qwen-Image-Edit models (vs Qwen2-VL)
   - Defined model card requirements (23 images)

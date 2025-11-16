@@ -10,12 +10,22 @@ The goal is to achieve robust character consistency across multiple angles, expr
 
 ## Tech Stack
 - **GPU**: NVIDIA RTX 4090 (24GB VRAM) - single local machine
-- **Image Generation**: FLUX with character LoRAs
-- **Image Editing**: Qwen-VL-Max for dataset enrichment
-- **Training**: LoRA/PEFT techniques (QLoRA, 8-bit optimizers, gradient checkpointing)
+- **Image Generation**: FLUX foundation model with character LoRAs
+- **Image Editing**: Qwen-Image-Edit-2509 + specialized ecosystem LoRAs
+  - Base model: Qwen/Qwen-Image-Edit-2509 (official)
+  - Community ecosystem: Multiple specialized fine-tunes available
+    - Angle changes (dx8152/Qwen-Edit-2509-Multiple-angles)
+    - Face/identity preservation models
+    - Lighting/complexion adjustments
+    - Style transfer (reference)
+  - Strategy: Single LoRA, multi-LoRA, custom, or hybrid approach
+- **Training**: LoRA/PEFT techniques (QLoRA, 4-bit quantization, gradient checkpointing)
 - **AI Curation**: Face recognition libraries for identity filtering
 - **Language**: Python (primary - for ML/AI workflows)
-- **Training Framework**: Diffusers library (likely)
+- **Frameworks**: 
+  - ai-toolkit (FLUX LoRA training - proven)
+  - Diffusers (Qwen-Image-Edit inference and training)
+  - PEFT (LoRA training for image editing models)
 
 ## Project Conventions
 
@@ -46,13 +56,18 @@ The goal is to achieve robust character consistency across multiple angles, expr
 
 ## Important Constraints
 - **Local-only deployment**: All processing runs on a single machine with one 4090
-- **24GB VRAM limit**: Requires memory-saving techniques (8-bit optimizers, low LoRA rank, gradient checkpointing)
+- **24GB VRAM limit**: Requires memory-saving techniques (4-bit quantization, low LoRA rank, gradient checkpointing)
 - **Manual curation bottleneck**: Human review is critical for quality but limits throughput
 - **Bootstrap problem**: Initial source material (10-20 images) must have variety in angles/expressions
+- **Multi-LoRA complexity**: Managing multiple specialized LoRAs adds operational overhead but provides flexibility
 
 ## External Dependencies
 - Qwen-Image-Edit-2509 model (official Qwen image editing model)
-- dx8152/Qwen-Edit-2509-Multiple-angles (community LoRA for reference)
+- **Qwen-Edit ecosystem** (community specialized LoRAs):
+  - dx8152/Qwen-Edit-2509-Multiple-angles (angle changes)
+  - Face/identity preservation LoRAs (to be identified)
+  - Lighting/skin editing LoRAs (to be identified)
+  - Reference: https://huggingface.co/models?pipeline_tag=image-to-image&sort=trending&search=qwen
 - FLUX foundation model (for image generation)
 - Face recognition libraries (for automated identity filtering)
 - Diffusers and PEFT libraries (for training and inference)

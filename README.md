@@ -8,14 +8,34 @@ A human-in-the-loop AI training system for creating high-quality character LoRAs
 
 FLENwheel uses a dual-flywheel approach to create robust character LoRAs for FLUX image generation:
 
-1. **Flywheel 1 - Character LoRA Training**: Qwen-VL enriches source material → FLUX LoRA training → synthetic data generation → human review → improved training data
-2. **Flywheel 2 - Editor Refinement**: Human corrections feed back to fine-tune the Qwen-VL editor itself
+1. **Flywheel 1 - Character LoRA Training**: Qwen-Image-Edit enriches source material → FLUX LoRA training → synthetic data generation → human review → improved training data
+2. **Flywheel 2 - Editor Refinement**: Human corrections feed back to fine-tune the Qwen-Image-Edit editor itself
 
 The system runs entirely on a single machine with an NVIDIA RTX 4090, using human guidance to prevent model drift and ensure quality.
 
+## 🚀 Major Update: Ecosystem Discovery
+
+**Active ecosystem of specialized Qwen-Image-Edit LoRAs discovered!**
+
+Multiple community fine-tunes exist for:
+- **Angle changes**: Camera viewpoint adjustments
+- **Face preservation**: Identity-preserving edits
+- **Lighting/skin**: Complexion and lighting adjustments
+- **Style transfer**: Technique references
+
+**Strategy options**:
+1. Use existing specialized LoRAs (fastest)
+2. Combine multiple LoRAs for different tasks
+3. Train custom character-specific LoRA
+4. Hybrid: existing + custom refinement
+
+See [docs/qwen-ecosystem-analysis.md](docs/qwen-ecosystem-analysis.md) for full analysis.
+
 ## Project Status
 
-🚧 **Early Development** - Currently in the definition and brainstorming phase
+🚧 **Early Development** - Currently in the definition and planning phase
+
+**Next**: Ecosystem survey and validation (Week 1, 7-10 hours)
 
 ## Goals
 
@@ -67,15 +87,20 @@ The system runs entirely on a single machine with an NVIDIA RTX 4090, using huma
 
 ## Documentation
 
-- [`docs/brainstorming.md`](docs/brainstorming.md) - Detailed concept and workflow
-- [`docs/basic-process.td`](docs/basic-process.td) - Mermaid diagram of the dual-flywheel process
-- [`openspec/project.md`](openspec/project.md) - Project context and conventions
+- **Start here**: [docs/SUMMARY.md](docs/SUMMARY.md) - Quick overview and current status
+- **Ecosystem**: [docs/qwen-ecosystem-analysis.md](docs/qwen-ecosystem-analysis.md) - Specialized LoRA options
+- **Technical**: [docs/technical-feasibility.md](docs/technical-feasibility.md) - Detailed feasibility analysis
+- **Process**: [docs/process-flow.md](docs/process-flow.md) - Complete dual-flywheel workflow
+- **Quick Start**: [docs/quick-start.md](docs/quick-start.md) - Hands-on validation guide
+- **Concept**: [docs/brainstorming.md](docs/brainstorming.md) - Original vision and design
+- **Diagram**: [docs/basic-process.td](docs/basic-process.td) - Visual flowchart
 
 ## Constraints
 
 - Single machine with 24GB VRAM requires memory optimization
 - Manual curation is bottleneck but critical for quality
 - Initial source material needs variety in angles/expressions
+- Multiple LoRA management adds complexity but provides flexibility
 
 ## License
 
