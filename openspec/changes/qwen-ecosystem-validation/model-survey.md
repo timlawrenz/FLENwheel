@@ -17,13 +17,25 @@
 - **Link**: https://huggingface.co/YaoJiefu/multiple-characters
 - **Status**: ❌ Deprioritized after model card review
 
-#### 2. dx8152/Qwen-Edit-2509-Multiple-angles
-- **Specialty**: Camera angle control (up/down/left/right/rotate)
-- **Relevance**: ⭐⭐⭐⭐⭐ CRITICAL - Already identified, now with update
-- **Use Case**: Control camera movement and rotation, wide-angle/close-up
-- **Notes**: UPDATED 2025/11/2 for consistency fix. Requires lightx2v/Qwen-Image-Lightning
+#### 2. dx8152/Qwen-Edit-2509-Multiple-angles ⭐⭐⭐⭐⭐ CRITICAL
+- **Specialty**: CAMERA movement and rotation (NOT lighting!)
+- **Relevance**: ⭐⭐⭐⭐⭐ CRITICAL - Exactly our core need!
+- **Use Case**: Transform SAME character to different camera angles/viewpoints
+- **Capabilities**:
+  - Rotate camera (left/right, up/down)
+  - Move camera position
+  - Change to wide-angle or close-up
+  - Text-driven: "Rotate camera 45 degrees left", "Move to profile view", etc.
+- **Updated**: 2025/11/2 - Consistency fix for character identity preservation
+- **Dependency**: Requires lightx2v/Qwen-Image-Lightning
 - **Link**: https://huggingface.co/dx8152/Qwen-Edit-2509-Multiple-angles
-- **Dependency**: https://huggingface.co/lightx2v/Qwen-Image-Lightning/tree/main
+- **Status**: ✅ TOP PRIORITY - This is THE model for angle enrichment
+
+**Example prompts from model card**:
+- "将镜头向前移动" (Move the camera forward)
+- "将镜头向左旋转45度" (Rotate the camera 45 degrees to the left)
+- "将镜头转为俯视" (Turn the camera to a top-down view)
+- "将镜头转为特写镜头" (Turn the camera to a close-up)
 
 #### 3. TsienDragon/qwen-image-edit-lora-face-segmentation
 - **Specialty**: Face segmentation masks
@@ -48,13 +60,16 @@
 - **Notes**: Could be used as preprocessing step
 - **Link**: https://huggingface.co/djessica/QE-2509-Relight
 
-#### 6. dx8152/Qwen-Edit-2509-Multi-Angle-Lighting
-- **Specialty**: Directional lighting control (8 directions + above/below)
-- **Relevance**: ⭐⭐⭐⭐⭐ CRITICAL - Precise lighting control
-- **Use Case**: Relight with specific source direction
-- **Prompt**: "Relight Figure 1 using luminance map from Figure 2 (light source from [direction])"
-- **Directions**: Front, Left Front, Left, Left Rear, Rear, Right Rear, Right, Right Front, Above, Below
+#### 6. dx8152/Qwen-Edit-2509-Multi-Angle-Lighting ⭐⭐⭐⭐ HIGH
+- **Specialty**: LIGHTING direction control (NOT camera angles!)
+- **Relevance**: ⭐⭐⭐⭐ HIGH - Lighting variation for robustness
+- **Use Case**: Relight subject with light from specific direction
+- **Capabilities**:
+  - 10 lighting directions: Front, Left Front, Left, Left Rear, Rear, Right Rear, Right, Right Front, Above, Below
+  - Uses luminance map from reference image
+  - Text-driven: "Relight Figure 1 using luminance map from Figure 2 (light source from [direction])"
 - **Link**: https://huggingface.co/dx8152/Qwen-Edit-2509-Multi-Angle-Lighting
+- **Note**: DIFFERENT from Multiple-angles (which is camera, not lighting)
 
 #### 7. dx8152/Qwen-Image-Edit-2509-Relight
 - **Specialty**: Another lighting neutralizer
@@ -138,12 +153,12 @@
 
 ## Priority Categories for Testing
 
-### MUST TEST (Top 5 - REVISED)
-1. **dx8152/Qwen-Edit-2509-Multiple-angles** - Updated with consistency fix (2025/11/2)
-2. **TsienDragon/qwen-image-edit-lora-face-segmentation** - Face segmentation for identity
-3. **djessica/QE-2509-Relight** - Lighting neutralization
-4. **dx8152/Qwen-Edit-2509-Multi-Angle-Lighting** - Directional lighting control
-5. **dx8152/Qwen-Image-Edit-2509-Relight** - Alternative lighting neutralizer
+### MUST TEST (Top 5 - FINAL)
+1. **dx8152/Qwen-Edit-2509-Multiple-angles** ⭐⭐⭐⭐⭐ - CAMERA angles (THE core model!)
+2. **TsienDragon/qwen-image-edit-lora-face-segmentation** ⭐⭐⭐⭐⭐ - Identity verification
+3. **dx8152/Qwen-Edit-2509-Multi-Angle-Lighting** ⭐⭐⭐⭐ - LIGHTING direction control
+4. **djessica/QE-2509-Relight** ⭐⭐⭐⭐ - Lighting neutralization
+5. **Base Qwen-Image-Edit-2509** ⭐⭐⭐⭐ - Background/composition variation
 
 ### SHOULD TEST (Next 5)
 6. **TsienDragon/qwen-image-edit-character-composition** - Alternative face segmentation
@@ -159,11 +174,16 @@
 - **Description ≠ Capability**: "Multiple characters" meant scene population, not character transformation
 - **Validation process works**: Caught the issue before wasting time on downloads/testing
 
-### Game Changers (Revised)
-- **dx8152 ecosystem**: 4 models from active developer, recent updates
-- **Face Segmentation Models**: Two options for automated identity verification
+### Game Changers (FINAL - Corrected)
+- **dx8152/Qwen-Edit-2509-Multiple-angles**: CAMERA angle transformation - THE core model we need!
+  - Single image → Multiple viewpoints (front, profile, 3/4, etc.)
+  - Character identity preservation (2025/11/2 consistency fix)
+  - Text-driven camera control
+  - This solves our PRIMARY requirement!
+- **dx8152 ecosystem**: 4 specialized models (camera angles, lighting, relighting, scene)
+- **Face Segmentation**: Two options for automated identity verification
 - **Lighting Suite**: Multiple lighting control options (neutralize, directional relight)
-- **Updated dx8152**: Consistency fix in latest version (2025/11/2)
+- **Complete toolset**: Everything needed for character consistency enrichment
 
 ### Ecosystem Patterns
 - Many models from **dx8152** (4 models) - active developer
