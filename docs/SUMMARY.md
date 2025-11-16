@@ -18,13 +18,30 @@
 ## Correct Model Stack
 
 ### Image Editing (Flywheel 1, Step 1.2)
-- **Base**: Qwen/Qwen-Image-Edit-2509 (~14GB)
+
+#### Base Model
+- **Qwen/Qwen-Image-Edit-2509** (~14GB)
   - Official Qwen image editing model
   - Designed for image-to-image editing
-- **Reference LoRA**: dx8152/Qwen-Edit-2509-Multiple-angles
-  - Community fine-tune for angle changes
+
+#### Community Ecosystem (Multiple Options!)
+**Discovery**: Active ecosystem of specialized fine-tunes exists!
+
+**Key Models to Explore**:
+- **dx8152/Qwen-Edit-2509-Multiple-angles**: Angle changes
+  - "Great inspiration, not good enough yet" per author
   - Proof that character-specific training works
-  - Quality: "great inspiration, but not good enough yet"
+- **Face/Identity Models**: Segmentation and preservation LoRAs
+- **Lighting/Skin Models**: Complexion and lighting adjustments
+- **Style Transfer Models**: Photo-to-anime (technique reference)
+
+**See**: [docs/qwen-ecosystem-analysis.md](docs/qwen-ecosystem-analysis.md) for full analysis
+
+**Strategy Options**:
+1. Use existing specialized LoRAs (if quality sufficient)
+2. Combine multiple LoRAs for different tasks
+3. Train custom character-specific LoRA
+4. Hybrid: existing LoRAs + custom refinement
 
 ### Image Generation (Flywheel 1, Steps 1.4-1.5)
 - **Base**: FLUX.1-dev
@@ -153,35 +170,45 @@ source venv/bin/activate
 # 2. Install dependencies
 pip install torch torchvision diffusers transformers accelerate bitsandbytes pillow opencv-python
 
-# 3. Download models (background - 1-2 hours)
+# 3. Download base model (background - 1-2 hours)
 huggingface-cli download Qwen/Qwen-Image-Edit-2509
-huggingface-cli download dx8152/Qwen-Edit-2509-Multiple-angles
 
-# 4. Create directory structure
+# 4. Survey ecosystem and download relevant LoRAs
+# Browse: https://huggingface.co/models?pipeline_tag=image-to-image&sort=trending&search=qwen
+huggingface-cli download dx8152/Qwen-Edit-2509-Multiple-angles
+# Add other relevant models as discovered (face, lighting, etc.)
+
+# 5. Create directory structure
 mkdir -p {scripts,test_data,data/{source,enriched,synthetic,pristine,qwen_training}/v1,models/{flux_lora,qwen_lora}}
 ```
 
-### Phase 2: Basic Validation (3-4 hours)
-1. Create and run `test_qwen_edit_basic.py`
-2. Create and run `test_qwen_edit_lora.py` (with dx8152)
-3. Create and run `test_comprehensive_editing.py`
-4. Manual review of all outputs
-5. Document quality assessment
+### Phase 2: Basic Validation (3-4 hours → 5-7 hours with ecosystem)
+1. Survey Qwen ecosystem (https://huggingface.co/models?pipeline_tag=image-to-image&sort=trending&search=qwen)
+2. Identify 3-5 most relevant LoRAs (face, angles, lighting)
+3. Create and run `test_qwen_edit_basic.py`
+4. Create and run `test_qwen_edit_lora.py` for each downloaded LoRA
+5. Create comparison matrix (character consistency, edit quality)
+6. Manual review of all outputs
+7. Document quality assessment for each model
 
 ### Phase 3: Decision Point (End of Week 1)
 Based on Phase 2 results:
-- ✅ Quality good enough → Proceed with Flywheel 1 POC
-- ❌ Quality insufficient → Plan Flywheel 2 parallel development
-- 📊 Document findings in new `docs/validation-results.md`
+- ✅ Existing LoRA(s) sufficient → Use as-is in Flywheel 1
+- 🔀 Multiple LoRAs complementary → Build multi-LoRA pipeline
+- ❌ Quality insufficient → Plan custom LoRA training (Flywheel 2)
+- 🎯 Hybrid approach → Existing LoRAs + custom refinement
+- 📊 Document findings in `docs/qwen-ecosystem-results.md`
 
 ## Success Criteria by Phase
 
 ### Week 1: Validation Complete
 - [ ] Qwen-Image-Edit-2509 running
-- [ ] dx8152 LoRA tested
-- [ ] 5 test images enriched
-- [ ] Character consistency rate measured
-- [ ] Decision made: base model vs custom LoRA
+- [ ] Ecosystem surveyed (3-5 relevant LoRAs identified)
+- [ ] Multiple LoRAs tested (base + specialized)
+- [ ] 5 test images enriched with each model
+- [ ] Character consistency rate measured for each
+- [ ] Comparison matrix completed
+- [ ] Decision made: which LoRA strategy to use
 
 ### Week 2-3: First Loop Complete
 - [ ] 10 source images prepared
@@ -217,18 +244,22 @@ Based on Phase 2 results:
 
 ## Open Questions
 
-1. What's the actual character consistency rate of base Qwen-Image-Edit-2509?
-2. Does dx8152 LoRA improve angle editing sufficiently?
-3. How many correction triplets needed for meaningful custom LoRA improvement?
-4. Should we train custom LoRA immediately or only if base insufficient?
-5. What face recognition model/threshold works best for filtering?
-6. Manual review UI needed, or folder-based workflow sufficient?
-7. How to version datasets and model checkpoints effectively?
+1. Which existing ecosystem LoRAs preserve character identity best?
+2. Can we combine multiple specialized LoRAs effectively?
+3. Do face-segmentation LoRAs help with identity preservation?
+4. What training techniques do the best ecosystem LoRAs use?
+5. Should we use single LoRA, multiple LoRAs, or custom training?
+6. What face recognition model/threshold works best for filtering?
+7. Manual review UI needed, or folder-based workflow sufficient?
+8. How to version datasets and model checkpoints effectively?
 
 ## Notes for Future Reference
 
-- dx8152 acknowledges their LoRA is "not good enough yet" - validates our need for improvement
-- Qwen-Image collection shows active development - may see better base models soon
-- PEFT/QLoRA proven to work on 4090 via dx8152 example
-- Character consistency is THE critical metric - everything else is secondary
+- **MAJOR**: Active Qwen-Edit ecosystem discovered (multiple-angles, face-seg, lighting, etc.)
+- **OPPORTUNITY**: Can leverage existing specialized LoRAs instead of training from scratch
+- **OPTIONS**: Single LoRA, multi-LoRA pipeline, or hybrid approach
+- dx8152 acknowledges their LoRA is "not good enough yet" - validates our need
+- Qwen-Image collection shows active development - may see better base models
+- PEFT/QLoRA proven to work on 4090 via multiple community examples
+- Character consistency is THE critical metric - everything else secondary
 - Human review is bottleneck but essential - don't skip or automate prematurely

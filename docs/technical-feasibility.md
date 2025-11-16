@@ -11,21 +11,25 @@
 - **Performance**: Capable on 4090
 - **Tooling**: ai-toolkit proven
 
-### 1.2 Qwen Image Editing Inference ❓ TO VALIDATE
-- **Model Family**: Qwen-Image (specialized for image editing)
-- **Base Model**: Qwen/Qwen-Image-Edit-2509 (official editing model)
-- **Fine-tuned Variant**: dx8152/Qwen-Edit-2509-Multiple-angles (community LoRA for angles)
+### 1.2 Qwen Image Edit Ecosystem ✨ MAJOR UPDATE
+- **Base Model**: Qwen-Image-Edit-2509 (official editing model)
+- **Ecosystem Discovery**: Multiple specialized fine-tunes available!
+  - dx8152/Qwen-Edit-2509-Multiple-angles (angle changes)
+  - Face segmentation LoRAs (identity preservation)
+  - Lighting/skin editing LoRAs (complexion adjustments)
+  - Style transfer LoRAs (technique reference)
 - **Model Size**: ~7B parameters (estimated ~14GB in fp16, ~8GB in 4-bit)
 - **Purpose**: Actual image-to-image editing (NOT just vision understanding)
 - **Quantization**: Can use 4-bit/8-bit quantization if needed
 - **Libraries**: transformers, diffusers, bitsandbytes
 - **Test needed**: 
-  1. Download Qwen-Image-Edit-2509
-  2. Load with 4-bit quantization
-  3. Test basic image editing prompts (background, lighting, angle changes)
-  4. Test with dx8152 LoRA for angle changes
-  5. Measure VRAM usage
-  6. Evaluate quality vs expectations
+  1. Survey ecosystem: https://huggingface.co/models?pipeline_tag=image-to-image&sort=trending&search=qwen
+  2. Download base + 3-5 most relevant specialized LoRAs
+  3. Test each on same source images
+  4. Create comparison matrix (character consistency, edit quality)
+  5. Decide: single LoRA, multi-LoRA, or custom training
+  6. Measure VRAM usage for each
+  7. Evaluate quality vs expectations
 
 ### 1.3 Concurrent Inference
 - **Challenge**: Running both models simultaneously would exceed VRAM
@@ -84,11 +88,35 @@
 - Fits in 24GB with quantization
 - Active development and community support
 
-### 3.2 Community Fine-Tunes to Study
-- **dx8152/Qwen-Edit-2509-Multiple-angles**: LoRA for angle changes
-  - Proof that fine-tuning for specific editing tasks works
-  - Study this approach for our character consistency training
-  - May not be good enough for our needs, but validates the concept
+### 3.2 Community Ecosystem (NEW: Multiple Options!)
+**Major Discovery**: Active ecosystem of specialized Qwen-Edit fine-tunes!
+
+**Key Models to Explore**:
+- **dx8152/Qwen-Edit-2509-Multiple-angles**: Camera angle changes
+  - Author notes "not good enough yet" but validates approach
+  - Proof that character-specific LoRA training works
+  
+- **Face/Identity Preservation Models**: 
+  - Face segmentation LoRAs
+  - Identity-preserving editing LoRAs
+  - Potential for automated identity verification
+  
+- **Lighting/Complexion Models**:
+  - Skin editing LoRAs
+  - Lighting adjustment LoRAs
+  - Could complement our background changes
+  
+- **Style Transfer Models** (reference):
+  - Photo-to-anime LoRAs
+  - Shows techniques for maintaining character across style changes
+
+**Strategy Implications**:
+1. **Use existing**: If specialized LoRAs are good enough
+2. **Combine multiple**: Different LoRAs for different tasks
+3. **Train custom**: If gaps remain or need character-specific
+4. **Hybrid**: Start with existing, refine with custom training
+
+**See**: `docs/qwen-ecosystem-analysis.md` for detailed analysis
 
 ### 3.3 Alternative Options (if Qwen-Image-Edit insufficient)
 - **InstructPix2Pix**: Alternative editing model
@@ -144,20 +172,30 @@ python -c "from diffusers import DiffusionPipeline; DiffusionPipeline.from_pretr
 
 ## 5. Proposed Validation Steps
 
-### Phase 1: Basic Qwen Image Edit Validation (Week 1)
+### Phase 1: Qwen Ecosystem Survey & Validation (Week 1)
+- [ ] Survey Qwen-Edit ecosystem on Hugging Face
+- [ ] Identify 3-5 most relevant specialized LoRAs:
+  - [ ] Angle/viewpoint models
+  - [ ] Face/identity preservation models  
+  - [ ] Lighting/complexion models
 - [ ] Install dependencies (transformers, diffusers, bitsandbytes, etc.)
-- [ ] Download Qwen-Image-Edit-2509
-- [ ] Download dx8152/Qwen-Edit-2509-Multiple-angles LoRA
+- [ ] Download Qwen-Image-Edit-2509 base model
+- [ ] Download identified specialized LoRAs
 - [ ] Load base model with 4-bit quantization
 - [ ] Test basic inference with sample images
-- [ ] Measure VRAM usage
-- [ ] Test basic editing prompts:
+- [ ] Measure VRAM usage for base + each LoRA
+- [ ] Test basic editing prompts with each model:
   - Background changes
   - Lighting adjustments
   - Style transfers
-- [ ] Test dx8152 LoRA for angle changes
-- [ ] Evaluate quality vs requirements (is it "good enough" baseline?)
-- [ ] Document working configuration
+  - Angle changes (with angle-specific LoRAs)
+- [ ] Create comparison matrix:
+  - Character identity preservation rate
+  - Edit quality (did it do what we asked?)
+  - Artifact frequency
+  - Speed/performance
+- [ ] Evaluate combinations (can we use multiple LoRAs together?)
+- [ ] Document working configuration for each model
 
 ### Phase 2: Dataset Enrichment POC (Week 2)
 - [ ] Gather 5-10 test images (character source material)
@@ -285,12 +323,14 @@ pandas>=2.2.0  # for dataset tracking
 
 ## 10. Open Questions
 
-1. **Qwen-Image-Edit base quality**: Good enough or need custom LoRA immediately?
-2. **dx8152 LoRA quality**: Does angle editing meet our needs?
-3. **Prompt engineering**: What prompt patterns work best for character consistency?
-4. **Training data volume**: How many triplets needed for meaningful improvement over base?
-5. **Identity verification**: Which face recognition library/model works best?
-6. **Pipeline orchestration**: Manual scripts vs workflow tool (Airflow, Prefect)?
-7. **Checkpoint strategy**: How often to save, how to version?
-8. **Quality metrics**: Beyond human review, any automated quality scores?
-9. **Base vs LoRA strategy**: Start with base model, or train LoRA from day 1?
+1. **Ecosystem models**: Which specialized LoRAs work best for our use case?
+2. **Multi-LoRA strategy**: Can we effectively combine angle + face + lighting LoRAs?
+3. **LoRA merging**: Is it technically feasible to merge multiple LoRAs?
+4. **Base quality**: Is Qwen-Image-Edit-2509 base model good enough alone?
+5. **Custom training**: If we train custom, which existing LoRA to use as reference?
+6. **Prompt engineering**: What prompt patterns work best with different LoRAs?
+7. **Training data volume**: How many triplets needed for meaningful improvement?
+8. **Identity verification**: Use face-segmentation LoRA or face_recognition library?
+9. **Pipeline orchestration**: Single LoRA, multi-LoRA, or sequential editing?
+10. **Checkpoint strategy**: How to version multiple LoRAs and combinations?
+11. **Quality metrics**: Automated scoring beyond face recognition?
