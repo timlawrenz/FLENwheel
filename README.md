@@ -1,6 +1,6 @@
 # FLENwheel
 
-**FLEN**wheel: **F**LUX **L**oRA **E**nrichment e**N**gine with dual-flywheel training
+**FLEN**wheel: **FL**ux + qw**EN** dual-flywheel training
 
 A human-in-the-loop AI training system for creating high-quality character LoRAs through iterative refinement.
 
