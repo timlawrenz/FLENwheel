@@ -2,8 +2,8 @@
 
 **Date**: 2025-11-16  
 **Phase**: 2 of 4 (Environment Setup)  
-**Status**: 🔄 IN PROGRESS (3/6 tasks complete)  
-**Time Spent**: ~30 minutes  
+**Status**: 🔄 IN PROGRESS (5/6 tasks complete - 83%)  
+**Time Spent**: ~29 minutes  
 
 ---
 
@@ -29,41 +29,69 @@
 
 **Total download**: ~800MB (PyTorch + dependencies)
 
+### Task 2.3: Base Model Location
+**Status**: ✅ FOUND (Existing Installation!)
+- Location: `/mnt/essdee/ComfyUI/models/unet/qwen-image-edit/`
+- File: `Qwen-Image-Edit-2509-Q8_0.gguf` (21GB)
+- Format: GGUF (8-bit quantized, optimized for speed)
+- **Saved 14GB download!** ✅
+
 ### Task 2.5: Create Directory Structure
 **Status**: ✅ COMPLETE (done early)
 ```
 FLENwheel/
-├── scripts/            (test scripts)
+├── scripts/            (test scripts + download_loras.sh)
 └── test_data/
     ├── source/         (5 test images)
     └── results/
         ├── base/       (base model outputs)
         └── loras/      (LoRA model outputs)
+
+ComfyUI Integration:
+/mnt/essdee/ComfyUI/models/
+├── unet/qwen-image-edit/
+│   └── Qwen-Image-Edit-2509-Q8_0.gguf (21GB) ✅
+└── loras/qwen-image-edit/
+    ├── Qwen-Image-Lightning-4steps-V1.0-bf16.safetensors ✅
+    └── (download 3 more LoRAs)
 ```
 
 ---
 
 ## ⏳ Remaining Tasks
 
-### Task 2.3: Download Base Model
-**Status**: ❌ NOT STARTED
-- Model: Qwen/Qwen-Image-Edit-2509 (~14GB)
-- Estimated time: 1-2 hours (depending on connection)
-- Command ready: `huggingface-cli download Qwen/Qwen-Image-Edit-2509`
-
 ### Task 2.4: Download Specialized LoRAs
-**Status**: ❌ NOT STARTED  
-- dx8152/Qwen-Edit-2509-Multiple-angles (priority 1)
-- lightx2v/Qwen-Image-Lightning (dependency)
-- TsienDragon/qwen-image-edit-lora-face-segmentation
-- dx8152/Qwen-Edit-2509-Multi-Angle-Lighting
-- Estimated time: 30 minutes
+**Status**: ✅ COMPLETE
+- Target: `/mnt/essdee/ComfyUI/models/loras/qwen-image-edit/`
+- Script: `scripts/download_loras.sh` ✅
+- Time: 2 minutes (fast connection: 44-63 MB/s)
+
+**Downloaded LoRAs** (Total: ~554MB):
+1. ✅ dx8152/Qwen-Edit-2509-Multiple-angles (226MB) ⭐⭐⭐⭐⭐
+   - File: `镜头转换.safetensors`
+   - Config: `多角度.json`
+   - THE CRITICAL ONE for camera angle changes!
+   
+2. ✅ dx8152/Qwen-Edit-2509-Multi-Angle-Lighting (282MB) ⭐⭐⭐⭐
+   - File: `多角度灯光-251116.safetensors`
+   - Config: `Multi-Angle-Lighting.json`
+   - For lighting direction control
+   
+3. ✅ TsienDragon/qwen-image-edit-lora-face-segmentation (46MB) ⭐⭐⭐⭐⭐
+   - File: `pytorch_lora_weights.safetensors`
+   - Includes example images
+   - For identity verification
+
+4. ✅ Qwen-Image-Lightning-4steps-V1.0-bf16.safetensors (92KB)
+   - Already had this!
+   - For fast 4-step inference
 
 ### Task 2.6: Prepare Test Images
 **Status**: ❌ NOT STARTED
 - Need 5 character source images
 - Requirements: variety in angles, expressions, lighting
 - Sharp, well-lit, shoulders visible
+- Copy to `test_data/source/`
 
 ---
 
@@ -85,28 +113,27 @@ FLENwheel/
 
 ## Next Session Plan
 
-**Recommended approach**: Start downloads in background
+**UPDATED**: Use existing ComfyUI infrastructure
 
-1. **Start model downloads** (can run overnight):
+1. **Download LoRAs** (15-30 minutes):
    ```bash
-   # Activate venv
-   source venv/bin/activate
-   
-   # Download base model (14GB, ~1-2 hours)
-   huggingface-cli download Qwen/Qwen-Image-Edit-2509
-   
-   # Download LoRAs (parallel, ~30 mins total)
-   huggingface-cli download dx8152/Qwen-Edit-2509-Multiple-angles &
-   huggingface-cli download lightx2v/Qwen-Image-Lightning &
-   wait
+   cd /home/tim/source/activity/FLENwheel
+   ./scripts/download_loras.sh
    ```
+   Downloads to: `/mnt/essdee/ComfyUI/models/loras/qwen-image-edit/`
 
-2. **While downloading**: Prepare test images (Task 2.6)
+2. **Prepare test images**:
    - Select/create 5 character images
    - Ensure variety (angles, expressions)
    - Copy to `test_data/source/`
 
-3. **After downloads complete**: Phase 3 (Testing) - 3-5 hours
+3. **Test with Python** (Phase 3):
+   - Use GGUF model from ComfyUI
+   - Test dx8152/Multiple-angles LoRA
+   - Verify: "front view" → "profile view" transformation
+   - Check character identity preservation
+
+**Advantage**: Saved 14GB download by using existing ComfyUI model!
 
 ---
 
@@ -115,14 +142,21 @@ FLENwheel/
 **Phase 2 Progress**:
 - Task 2.1: 5 minutes (venv setup)
 - Task 2.2: 20 minutes (pip installs)
+- Task 2.3: 0 minutes (found existing model!) ✅
+- Task 2.4: 2 minutes (LoRA downloads) ✅
 - Task 2.5: 2 minutes (directories)
-- **Total so far**: 27 minutes
-- **Remaining**: 2-3 hours (mostly downloads)
+- **Total so far**: 29 minutes
+- **Remaining**: 5-15 minutes (test images)
 
 **Overall Progress**:
-- Phase 1: ✅ 2 hours
-- Phase 2: 🔄 0.5 hours (of 3 hours)
-- **Total**: 2.5/10 hours
+- Phase 1: ✅ 2 hours (complete)
+- Phase 2: 🔄 0.5 hours (of 0.75 hours revised!)
+- **Total**: 2.5/7.75 hours
+
+**Time Saved**: 
+- 2 hours (no base model download)
+- 0.25 hours (fast LoRA downloads)
+- **Total saved: 2.25 hours** (was 10 hours, now 7.75 hours!)
 
 ---
 
@@ -131,10 +165,15 @@ FLENwheel/
 - Environment setup went smoothly
 - No dependency conflicts
 - CUDA working perfectly (4090 detected)
-- Ready for model downloads
-- Downloads can run unattended
-- Good stopping point for today
+- **BONUS**: Found existing Qwen model in ComfyUI! (saved 21GB + 2 hours)
+- Using ComfyUI model directory keeps everything organized
+- GGUF format (8-bit) trades small quality loss for speed/size
+- All LoRAs downloaded successfully (554MB in 2 minutes) ✅
+- Fast download speeds (44-63 MB/s)
+- Chinese filenames (镜头转换, 多角度灯光) - authentic from dx8152!
+- Face-segmentation includes example images for reference
+- Only need test images now!
 
 ---
 
-**Status**: Phase 2 is 50% complete, ready to resume with downloads.
+**Status**: Phase 2 is 83% complete (5/6 tasks), one final task remaining!
