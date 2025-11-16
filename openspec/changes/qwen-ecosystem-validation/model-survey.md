@@ -8,12 +8,14 @@
 
 ### HIGH PRIORITY - Character Consistency
 
-#### 1. YaoJiefu/multiple-characters
-- **Specialty**: Multiple characters, any angle generation
-- **Relevance**: ⭐⭐⭐⭐⭐ CRITICAL - Multi-angle character generation
-- **Use Case**: Generate characters that fit scene from almost any angle
-- **Notes**: Can generate MULTIPLE characters - huge for our use case
+#### 1. YaoJiefu/multiple-characters ❌ MISLEADING
+- **Specialty**: Adds multiple NEW characters to empty scenes
+- **Relevance**: ⭐ LOW - NOT for character consistency
+- **Actual Use Case**: Scene population (family on couch, couple in kitchen)
+- **Why Not Useful**: Generates NEW characters, not transformations of SAME character
+- **Notes**: Misleading description - "multiple characters" ≠ "character from multiple angles"
 - **Link**: https://huggingface.co/YaoJiefu/multiple-characters
+- **Status**: ❌ Deprioritized after model card review
 
 #### 2. dx8152/Qwen-Edit-2509-Multiple-angles
 - **Specialty**: Camera angle control (up/down/left/right/rotate)
@@ -136,24 +138,29 @@
 
 ## Priority Categories for Testing
 
-### MUST TEST (Top 5)
-1. **YaoJiefu/multiple-characters** - Multi-character, multi-angle (game changer!)
-2. **dx8152/Qwen-Edit-2509-Multiple-angles** - Updated version with consistency fix
-3. **TsienDragon/qwen-image-edit-lora-face-segmentation** - Face segmentation for identity
-4. **djessica/QE-2509-Relight** - Lighting neutralization
-5. **dx8152/Qwen-Edit-2509-Multi-Angle-Lighting** - Directional lighting control
+### MUST TEST (Top 5 - REVISED)
+1. **dx8152/Qwen-Edit-2509-Multiple-angles** - Updated with consistency fix (2025/11/2)
+2. **TsienDragon/qwen-image-edit-lora-face-segmentation** - Face segmentation for identity
+3. **djessica/QE-2509-Relight** - Lighting neutralization
+4. **dx8152/Qwen-Edit-2509-Multi-Angle-Lighting** - Directional lighting control
+5. **dx8152/Qwen-Image-Edit-2509-Relight** - Alternative lighting neutralizer
 
 ### SHOULD TEST (Next 5)
-6. **dx8152/Qwen-Image-Edit-2509-Relight** - Alternative lighting neutralizer
-7. **TsienDragon/qwen-image-edit-character-composition** - Alternative face segmentation
-8. **valiantcat/Qwen-Image-Edit-MeiTu** - Quality enhancement
-9. **InstantX/Qwen-Image-ControlNet-Inpainting** - Precise editing
-10. **InstantX/Qwen-Image-ControlNet-Union** - Pose control
+6. **TsienDragon/qwen-image-edit-character-composition** - Alternative face segmentation
+7. **valiantcat/Qwen-Image-Edit-MeiTu** - Quality enhancement
+8. **InstantX/Qwen-Image-ControlNet-Inpainting** - Precise editing
+9. **InstantX/Qwen-Image-ControlNet-Union** - Pose control with OpenPose
+10. **dx8152/Qwen-Image-Edit-2509-White_to_Scene** - Background generation
 
 ## Key Findings
 
-### Game Changers
-- **YaoJiefu/multiple-characters**: Can generate MULTIPLE characters from any angle - this is HUGE if it works well
+### Lesson Learned
+- **Model card review is ESSENTIAL**: YaoJiefu/multiple-characters was misleading
+- **Description ≠ Capability**: "Multiple characters" meant scene population, not character transformation
+- **Validation process works**: Caught the issue before wasting time on downloads/testing
+
+### Game Changers (Revised)
+- **dx8152 ecosystem**: 4 models from active developer, recent updates
 - **Face Segmentation Models**: Two options for automated identity verification
 - **Lighting Suite**: Multiple lighting control options (neutralize, directional relight)
 - **Updated dx8152**: Consistency fix in latest version (2025/11/2)
@@ -180,8 +187,9 @@ Detailed model card review for top 10 models:
 
 ## Notes
 
-- **Critical Discovery**: YaoJiefu/multiple-characters could be game-changing for character consistency
+- **✓ Validation Process Works**: Caught YaoJiefu misunderstanding before wasting time
+- **Critical Discovery**: dx8152 has 4 models including recent consistency fix
 - **Updated Model**: dx8152 angle LoRA has consistency fix (test new version)
-- **Ecosystem Maturity**: 17 specialized models shows very active community
-- **Strategic Implication**: May not need custom training at all with this many options!
+- **Ecosystem Maturity**: 16 actually relevant models (17 minus misleading one)
+- **Strategic Implication**: Focus on dx8152 ecosystem + face segmentation + lighting control
 
