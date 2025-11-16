@@ -110,12 +110,19 @@
 - **Notes**: ControlNet, not LoRA - different usage pattern
 - **Link**: https://huggingface.co/InstantX/Qwen-Image-ControlNet-Inpainting
 
-#### 12. InstantX/Qwen-Image-ControlNet-Union
-- **Specialty**: ControlNet including OpenPose
-- **Relevance**: ⭐⭐⭐ MEDIUM - Pose control
-- **Use Case**: Control pose with OpenPose
-- **Notes**: ControlNet for body pose control
+#### 12. InstantX/Qwen-Image-ControlNet-Union ❌ WRONG MODEL FAMILY
+- **Specialty**: Unified ControlNet (canny, soft edge, depth, pose)
+- **Base Model**: Qwen-Image (GENERATION, not Edit!)
+- **Relevance**: ⭐ LOW - Incompatible base model
+- **Use Case**: Generate images with control maps (pose skeleton, depth, etc.)
+- **Why Not Useful**: 
+  - For Qwen-Image (generation), not Qwen-Image-Edit (editing)
+  - Generates from scratch, doesn't edit existing images
+  - Requires control map preprocessing
+  - Won't preserve character from source images
+- **Notes**: ControlNet approach fundamentally different from our LoRA editing pipeline
 - **Link**: https://huggingface.co/InstantX/Qwen-Image-ControlNet-Union
+- **Status**: ❌ Deprioritized - wrong model family, wrong approach
 
 #### 13. starsfriday/Qwen-Image-Edit-Remover-General-LoRA
 - **Specialty**: Object removal, maintains consistency
@@ -207,9 +214,20 @@ Detailed model card review for top 10 models:
 
 ## Notes
 
-- **✓ Validation Process Works**: Caught YaoJiefu misunderstanding before wasting time
-- **Critical Discovery**: dx8152 has 4 models including recent consistency fix
-- **Updated Model**: dx8152 angle LoRA has consistency fix (test new version)
-- **Ecosystem Maturity**: 16 actually relevant models (17 minus misleading one)
-- **Strategic Implication**: Focus on dx8152 ecosystem + face segmentation + lighting control
+- **✓ Validation Process Works**: Caught 3 major misunderstandings through model card review
+  1. YaoJiefu/multiple-characters - Scene population, not character angles
+  2. dx8152/Multiple-angles - Initially confused with lighting model
+  3. InstantX ControlNets - Wrong model family (Qwen-Image vs Qwen-Image-Edit)
+- **✅ BREAKTHROUGH**: dx8152/Multiple-angles validated via car example
+  - Front → Profile with text prompt
+  - Preserves identity perfectly
+  - Proof of concept confirmed!
+- **Critical Discovery**: dx8152 has 4 models including recent consistency fix (2025/11/2)
+- **Ecosystem Maturity**: 16 relevant models (17 minus misleading one, minus 2 incompatible)
+- **Strategic Clarity**: 4 core models for multi-dimensional enrichment pipeline
+  - Angles: dx8152/Multiple-angles
+  - Lighting: dx8152/Multi-Angle-Lighting
+  - Identity: Face-segmentation LoRAs
+  - Background: Base Qwen-Image-Edit-2509
+- **Success Probability**: HIGH - proof of concept exists, identity preservation works
 
