@@ -80,28 +80,30 @@ This document details the complete FLENwheel process with all loops, steps, and 
 
 ---
 
-### Step 1.2: Dataset Enrichment (Qwen-VL)
+### Step 1.2: Dataset Enrichment (Qwen-Image-Edit)
 **Input**: Curated source dataset  
 **Output**: Enriched dataset (50-100 images)
 
 **Requirements**:
-- Qwen-VL model loaded and running
+- Qwen-Image-Edit-2509 model loaded and running
+- Optional: dx8152 angle LoRA (if angle changes needed)
 - Source images from Step 1.1
 - Enrichment prompt templates
-- VRAM available (~16GB for Qwen-VL-7B)
+- VRAM available (~16GB for base model)
 
 **Process**:
-1. Load Qwen-VL model (with 4-bit quantization)
-2. For each source image:
+1. Load Qwen-Image-Edit-2509 pipeline
+2. Optional: Load dx8152 LoRA for angle editing
+3. For each source image:
    - Apply 3-5 different editing prompts:
-     - "Change background to [forest/studio/beach/urban]"
-     - "Change lighting to [daylight/sunset/nighttime/studio]"
+     - "Change background to [forest/studio/beach/urban], keep person identical"
+     - "Change lighting to [daylight/sunset/nighttime/studio], keep person identical"
      - "Keep the person identical, but make it look like [oil painting/watercolor/sketch]"
-     - "Change camera angle to [slightly left/slightly right/lower/higher] while keeping the person"
+     - "Change camera angle to [slightly left/slightly right/lower/higher], maintain appearance"
    - Generate edited image
    - Save with metadata linking to source
-3. Organize outputs in `data/enriched/v1/`
-4. Create enrichment_metadata.json
+4. Organize outputs in `data/enriched/v1/`
+5. Create enrichment_metadata.json
 
 **Success Criteria**:
 - ✅ 5x source images = 50+ enriched images minimum
@@ -111,7 +113,8 @@ This document details the complete FLENwheel process with all loops, steps, and 
 
 **Tools/Scripts**:
 - `scripts/enrich_dataset.py` (to create)
-- Qwen-VL inference wrapper
+- Qwen-Image-Edit-2509 inference wrapper
+- Optional: dx8152 LoRA integration
 
 **Quality Gates**:
 - Automated identity check (face_recognition library)
@@ -312,19 +315,21 @@ This document details the complete FLENwheel process with all loops, steps, and 
 **Requirements**:
 - Images that need correction
 - Manual editing tools (Photoshop/GIMP) OR improved prompts
+- Study of dx8152 dataset structure
 
 **Process**:
 1. For each "needs_correction" image:
-   - Identify what's wrong (identity drift, artifacts)
+   - Identify what's wrong (identity drift, artifacts, insufficient angle change)
    - Create corrected version manually OR
    - Find improved prompt that fixes the issue
-2. Create training triplet:
+2. Create training triplet (following dx8152's approach):
    ```json
    {
      "source_image": "data/source/v1/source_001.jpg",
      "edit_prompt": "Change background to forest, keep face identical",
      "target_image": "data/corrections/v1/corrected_001.jpg",
-     "issue": "Original edit changed nose shape"
+     "issue": "Original edit changed nose shape",
+     "improvement": "Manual correction preserved facial structure"
    }
    ```
 3. Save to `data/qwen_training/v1/`
@@ -340,60 +345,67 @@ This document details the complete FLENwheel process with all loops, steps, and 
 
 ---
 
-### Step 2.2: Qwen-VL LoRA Training
+### Step 2.2: Qwen-Image-Edit LoRA Training
 **Input**: Correction triplet dataset  
-**Output**: qwen_lora_v1.safetensors
+**Output**: qwen_char_lora_v1.safetensors
 
 **Requirements**:
 - PEFT library installed
-- Qwen-VL base model
+- Qwen-Image-Edit-2509 base model
 - Training dataset (10+ triplets)
 - VRAM available (~18-22GB)
+- Study of dx8152 training approach
 
 **Process**:
-1. Prepare training config:
+1. Study dx8152/Qwen-Edit-2509-Multiple-angles:
+   - Training methodology
+   - Dataset structure
+   - Hyperparameters used
+2. Prepare training config (adapted from dx8152):
    ```python
-   # QLoRA configuration
+   # QLoRA configuration for Qwen-Image-Edit
    from peft import LoraConfig
    
    lora_config = LoraConfig(
-       r=8,  # LoRA rank
+       r=8,  # LoRA rank (adjust based on dx8152)
        lora_alpha=32,
-       target_modules=["q_proj", "v_proj"],  # Qwen-VL specific
+       target_modules=["q_proj", "v_proj"],  # Model-specific
        lora_dropout=0.1,
        bias="none",
    )
    ```
-2. Load Qwen-VL in 4-bit
-3. Add LoRA adapter
-4. Train on triplets
-5. Save adapter
+3. Load Qwen-Image-Edit-2509 in 4-bit
+4. Add LoRA adapter
+5. Train on character consistency triplets
+6. Save adapter
 
 **Success Criteria**:
 - ✅ Training completes without OOM
-- ✅ Adapter improves editing on test prompts
+- ✅ Adapter improves character consistency vs base model
+- ✅ Adapter quality exceeds dx8152 for our specific character
 - ✅ Can save/load adapter
 
 **Tools/Scripts**:
-- `scripts/train_qwen_lora.py` (to create)
+- `scripts/train_qwen_lora.py` (to create, based on dx8152 approach)
 - PEFT library
 
-**Note**: This step has highest uncertainty - needs PEFT learning first
+**Note**: dx8152 proves this works; our goal is character-specific improvement
 
 ---
 
-### Step 2.3: Integration (Use qwen_lora_v1 in Flywheel 1)
-**Input**: Trained Qwen LoRA adapter  
+### Step 2.3: Integration (Use qwen_char_lora_v1 in Flywheel 1)
+**Input**: Trained Qwen character LoRA adapter  
 **Output**: Improved enrichment in next Flywheel 1 iteration
 
 **Process**:
-1. Update enrichment script to load Qwen-VL + qwen_lora_v1
-2. Run Step 1.2 with improved editor
-3. Compare quality vs v1
+1. Update enrichment script to load Qwen-Image-Edit-2509 + qwen_char_lora_v1
+2. Run Step 1.2 with improved character-specific editor
+3. Compare quality vs base model and dx8152 LoRA
 
 **Success Criteria**:
 - ✅ Fewer "needs_correction" images
-- ✅ Better character consistency
+- ✅ Better character consistency than base model
+- ✅ Better character consistency than dx8152 LoRA
 - ✅ Fewer manual rejections
 
 **Loop**: Continue collecting corrections, retrain Qwen LoRA v2, v3...
@@ -474,20 +486,22 @@ Each model card image must be:
 ```
 
 ### Blocking Requirements
-- **Can't do 1.2** until Qwen-VL working
+- **Can't do 1.2** until Qwen-Image-Edit working
 - **Can't do 1.4** until training data ready
 - **Can't do 1.5** until FLUX LoRA trained
-- **Can't do 2.2** until PEFT understood and implemented
-- **Step 2.2 is optional** - Flywheel 1 can run independently
+- **Can't do 2.2** until dx8152 approach studied and PEFT implemented
+- **Step 2.2 is optional** - Flywheel 1 can run with base model or dx8152 LoRA
 
 ---
 
 ## Proof of Concept Milestones
 
 ### POC Phase 1: Basic Validation (Week 1)
-- [ ] Qwen-VL inference working
+- [ ] Qwen-Image-Edit-2509 inference working
+- [ ] Test with dx8152 LoRA
 - [ ] Can enrich 5 test images
 - [ ] Manual review confirms character consistency
+- [ ] Assess quality: good enough or need custom LoRA?
 
 ### POC Phase 2: Single Flywheel 1 Iteration (Week 2-3)
 - [ ] Complete Steps 1.1-1.4
@@ -500,18 +514,22 @@ Each model card image must be:
 - [ ] Measure improvement v1 → v2
 
 ### POC Phase 4: Flywheel 2 (Week 5+)
-- [ ] Learn PEFT
+- [ ] Study dx8152 approach thoroughly
+- [ ] Learn PEFT for image editing models
 - [ ] Complete Steps 2.1-2.2
-- [ ] Test qwen_lora_v1 in next iteration
+- [ ] Test qwen_char_lora_v1 in next iteration
+- [ ] Compare: base model vs dx8152 vs custom LoRA
 
 ---
 
 ## Open Questions & Decisions Needed
 
-1. **Qwen-VL model size**: 2B vs 7B?
-2. **Instance token naming**: "ohwx_char" or something else?
-3. **Review interface**: Manual folders or build UI?
-4. **Automated quality metrics**: Beyond face recognition, what else?
-5. **Version control**: How to track dataset versions?
-6. **Checkpoint strategy**: How often to save during training?
-7. **Flywheel 2 priority**: Start immediately or after Flywheel 1 proven?
+1. **Base model quality**: Is Qwen-Image-Edit-2509 good enough or need custom LoRA immediately?
+2. **dx8152 LoRA**: Can we use it as-is, or just as reference?
+3. **Instance token naming**: "ohwx_char" or something else?
+4. **Review interface**: Manual folders or build UI?
+5. **Automated quality metrics**: Beyond face recognition, what else?
+6. **Version control**: How to track dataset versions?
+7. **Checkpoint strategy**: How often to save during training?
+8. **Flywheel 2 priority**: Start after Flywheel 1 proven, or in parallel?
+9. **Training data volume**: How many triplets for meaningful custom LoRA improvement?

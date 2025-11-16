@@ -25,20 +25,18 @@ pip install pillow opencv-python
 pip install qwen-vl-utils  # Qwen-specific utilities
 ```
 
-### Step 2: Download Qwen2-VL Model (1-2 hours)
+### Step 2: Download Qwen Image Edit Models (1-2 hours)
 
-**Decision Point**: Which model?
-- **Option A**: Qwen2-VL-2B-Instruct (~4GB, faster, lower quality)
-- **Option B**: Qwen2-VL-7B-Instruct (~15GB, slower, higher quality)
-
-**Recommendation**: Start with 2B for quick validation, upgrade to 7B if quality insufficient
+**Models to download**:
+- **Qwen/Qwen-Image-Edit-2509** (base editing model, ~14GB)
+- **dx8152/Qwen-Edit-2509-Multiple-angles** (LoRA for angle edits, ~100-500MB)
 
 ```bash
-# Download 2B model
-huggingface-cli download Qwen/Qwen2-VL-2B-Instruct
+# Download base editing model
+huggingface-cli download Qwen/Qwen-Image-Edit-2509
 
-# Or download 7B model
-huggingface-cli download Qwen/Qwen2-VL-7B-Instruct
+# Download community LoRA (to study and test)
+huggingface-cli download dx8152/Qwen-Edit-2509-Multiple-angles
 ```
 
 **Storage check**:
@@ -48,156 +46,223 @@ df -h ~/.cache/huggingface  # Make sure you have 20GB+ free
 
 ### Step 3: Create Basic Inference Test (1 hour)
 
-Create `scripts/test_qwen_basic.py`:
+Create `scripts/test_qwen_edit_basic.py`:
 
 ```python
 #!/usr/bin/env python3
-"""Test Qwen-VL basic inference"""
+"""Test Qwen-Image-Edit basic inference"""
 
 import torch
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+from diffusers import DiffusionPipeline
 from PIL import Image
 
-def test_qwen_inference():
-    # Model selection
-    model_name = "Qwen/Qwen2-VL-2B-Instruct"  # or 7B
+def test_qwen_edit_inference():
+    model_name = "Qwen/Qwen-Image-Edit-2509"
     
     print(f"Loading model: {model_name}")
     
-    # Load with 4-bit quantization
-    model = Qwen2VLForConditionalGeneration.from_pretrained(
+    # Load image editing pipeline
+    pipe = DiffusionPipeline.from_pretrained(
         model_name,
         torch_dtype=torch.float16,
         device_map="auto",
-        load_in_4bit=True
     )
     
-    processor = AutoProcessor.from_pretrained(model_name)
+    # Optional: Load with 4-bit quantization if VRAM tight
+    # pipe = DiffusionPipeline.from_pretrained(
+    #     model_name,
+    #     torch_dtype=torch.float16,
+    #     device_map="auto",
+    #     load_in_4bit=True
+    # )
     
     print("Model loaded successfully!")
     print(f"VRAM usage: {torch.cuda.memory_allocated() / 1e9:.2f} GB")
     
-    # Test with a simple image
-    test_image_path = "test_data/sample.jpg"  # You'll need to provide this
+    # Test with a simple image edit
+    test_image_path = "test_data/sample.jpg"
+    source_image = Image.open(test_image_path)
     
-    # Simple description test
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "image", "image": test_image_path},
-                {"type": "text", "text": "Describe this image."}
-            ]
-        }
-    ]
+    # Simple editing test
+    prompt = "Change the background to a forest, keep the person identical"
     
-    text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    inputs = processor(text=[text], images=[Image.open(test_image_path)], return_tensors="pt")
-    inputs = inputs.to("cuda")
+    print(f"Editing with prompt: {prompt}")
     
-    print("Generating response...")
-    with torch.no_grad():
-        outputs = model.generate(**inputs, max_new_tokens=128)
+    edited_image = pipe(
+        prompt=prompt,
+        image=source_image,
+        num_inference_steps=50,
+    ).images[0]
     
-    response = processor.batch_decode(outputs, skip_special_tokens=True)[0]
-    print(f"\nResponse: {response}")
+    # Save result
+    edited_image.save("test_data/edited_basic.jpg")
+    print("Saved edited image to test_data/edited_basic.jpg")
     
-    return model, processor
+    return pipe
 
 if __name__ == "__main__":
-    model, processor = test_qwen_inference()
+    pipe = test_qwen_edit_inference()
 ```
 
 **Run it**:
 ```bash
-python scripts/test_qwen_basic.py
+# First, create test directory and add a sample image
+mkdir -p test_data
+# Copy a test portrait image to test_data/sample.jpg
+
+python scripts/test_qwen_edit_basic.py
 ```
 
 **Success criteria**:
 - ✅ Model loads without errors
 - ✅ VRAM usage < 20GB
-- ✅ Generates coherent description
+- ✅ Generates edited image
+- ✅ Character identity preserved in output
 
-### Step 4: Test Image Editing (1 hour)
+### Step 4: Test with dx8152 LoRA (1 hour)
 
-Create `scripts/test_qwen_editing.py`:
+Create `scripts/test_qwen_edit_lora.py`:
 
 ```python
 #!/usr/bin/env python3
-"""Test Qwen-VL image editing capabilities"""
+"""Test Qwen-Image-Edit with dx8152 angle LoRA"""
 
 import torch
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
+from diffusers import DiffusionPipeline
 from PIL import Image
 
-def test_editing_prompts(model, processor, test_image_path):
-    """Test various editing prompts"""
+def test_with_lora():
+    base_model = "Qwen/Qwen-Image-Edit-2509"
+    lora_model = "dx8152/Qwen-Edit-2509-Multiple-angles"
     
-    editing_prompts = [
-        "Change the background to a forest, keep everything else the same.",
-        "Make the lighting look like sunset, keep the subject identical.",
-        "Convert this to an oil painting style, preserve the person's features exactly.",
-        "Change camera angle to slightly left view, maintain character appearance.",
+    print(f"Loading base model: {base_model}")
+    
+    pipe = DiffusionPipeline.from_pretrained(
+        base_model,
+        torch_dtype=torch.float16,
+        device_map="auto",
+    )
+    
+    print(f"Loading LoRA: {lora_model}")
+    pipe.load_lora_weights(lora_model)
+    
+    print("Models loaded successfully!")
+    print(f"VRAM usage: {torch.cuda.memory_allocated() / 1e9:.2f} GB")
+    
+    # Test angle changes (what dx8152 LoRA is trained for)
+    test_image_path = "test_data/sample.jpg"
+    source_image = Image.open(test_image_path)
+    
+    angle_prompts = [
+        "Change camera angle to slightly left view, keep the person identical",
+        "Change camera angle to profile view, maintain character appearance",
+        "Show the person from a higher angle, preserve features exactly",
     ]
     
-    for i, prompt in enumerate(editing_prompts):
-        print(f"\n--- Test {i+1}: {prompt[:50]}... ---")
+    for i, prompt in enumerate(angle_prompts):
+        print(f"\n--- Test {i+1}: {prompt} ---")
         
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "image": test_image_path},
-                    {"type": "text", "text": prompt}
-                ]
-            }
-        ]
+        edited_image = pipe(
+            prompt=prompt,
+            image=source_image,
+            num_inference_steps=50,
+        ).images[0]
         
-        text = processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        inputs = processor(text=[text], images=[Image.open(test_image_path)], return_tensors="pt")
-        inputs = inputs.to("cuda")
-        
-        # Note: Qwen2-VL primarily does vision understanding, not image generation
-        # For actual image editing, we may need to use a different approach
-        # This is a critical discovery step!
-        
-        with torch.no_grad():
-            outputs = model.generate(**inputs, max_new_tokens=256)
-        
-        response = processor.batch_decode(outputs, skip_special_tokens=True)[0]
-        print(f"Response: {response}")
+        output_path = f"test_data/edited_lora_{i+1}.jpg"
+        edited_image.save(output_path)
+        print(f"Saved to {output_path}")
+    
+    return pipe
 
 if __name__ == "__main__":
-    from test_qwen_basic import test_qwen_inference
-    
-    model, processor = test_qwen_inference()
-    test_editing_prompts(model, processor, "test_data/sample.jpg")
+    pipe = test_with_lora()
 ```
 
-**CRITICAL DISCOVERY POINT**: 
-Qwen2-VL is primarily a **vision-language understanding** model, not an image **generation** model!
+**Run it**:
+```bash
+python scripts/test_qwen_edit_lora.py
+```
 
-For actual image editing, we may need:
-- **Option A**: Use Qwen2-VL to generate detailed descriptions, then feed to FLUX
-- **Option B**: Use InstructPix2Pix or similar editing model
-- **Option C**: Use Qwen-VL-Chat API which may have editing capabilities
-- **Option D**: Rethink architecture: use Qwen2-VL for validation/captioning instead of editing
+**Success criteria**:
+- ✅ LoRA loads successfully
+- ✅ Generates angle-changed images
+- ✅ Character identity preserved
+- ✅ Quality acceptable (or identify what needs improvement)
 
-**This is a blocker that needs resolution!**
+### Step 5: Comprehensive Editing Tests (2 hours)
 
-### Step 5: Research & Decision (2 hours)
+Create `scripts/test_comprehensive_editing.py`:
 
-Research actual image editing approaches:
+```python
+#!/usr/bin/env python3
+"""Comprehensive test of editing capabilities"""
 
-1. **Check Qwen2-VL documentation**: Does it support image editing at all?
-2. **Check Qwen-VL-Max API**: Is that the editing-capable version?
-3. **Alternative models**:
-   - InstructPix2Pix
-   - SDXL-Turbo with ControlNet
-   - DALL-E 3 API (external)
-   - Stable Diffusion Inpainting
+import torch
+from diffusers import DiffusionPipeline
+from PIL import Image
+import os
 
-**Decision needed**: What editing approach to use?
+def comprehensive_test():
+    pipe = DiffusionPipeline.from_pretrained(
+        "Qwen/Qwen-Image-Edit-2509",
+        torch_dtype=torch.float16,
+        device_map="auto",
+    )
+    
+    test_image = Image.open("test_data/sample.jpg")
+    
+    # Test various editing types
+    editing_tests = [
+        ("background_forest", "Change background to a forest, keep person identical"),
+        ("background_beach", "Change background to a beach, keep person identical"),
+        ("lighting_sunset", "Make lighting look like sunset, keep subject identical"),
+        ("lighting_studio", "Add studio lighting, keep person identical"),
+        ("style_painting", "Convert to oil painting style, preserve features exactly"),
+        ("angle_left", "Change camera angle slightly to the left, maintain appearance"),
+    ]
+    
+    os.makedirs("test_data/comprehensive", exist_ok=True)
+    
+    for name, prompt in editing_tests:
+        print(f"\nTesting: {prompt}")
+        
+        result = pipe(
+            prompt=prompt,
+            image=test_image,
+            num_inference_steps=50,
+        ).images[0]
+        
+        output_path = f"test_data/comprehensive/{name}.jpg"
+        result.save(output_path)
+        print(f"Saved to {output_path}")
+    
+    print("\n✅ Comprehensive test complete!")
+    print("Review images in test_data/comprehensive/")
+    print("Assess:")
+    print("  - Character identity preservation")
+    print("  - Edit quality (did background/lighting actually change?)")
+    print("  - Artifacts or distortions")
+    print("  - Overall suitability for dataset enrichment")
+
+if __name__ == "__main__":
+    comprehensive_test()
+```
+
+**Manual Review**:
+```bash
+python scripts/test_comprehensive_editing.py
+
+# Review all outputs
+ls -lh test_data/comprehensive/
+# Open each image and assess quality
+```
+
+**Critical Assessment**:
+- ✅ Is character identity preserved across all edits?
+- ✅ Do edits actually change what we asked (backgrounds, lighting)?
+- ✅ Is quality sufficient for training data?
+- ❌ What fails? Document limitations
+- ❓ Do we need custom LoRA training from the start?
 
 ---
 
@@ -252,25 +317,30 @@ ls -lh test_data/enriched/v1/
 
 ## Critical Decisions Needed
 
-### 1. Image Editing Approach
-**Question**: How do we actually edit images while preserving character identity?
+### 1. Image Editing Quality
+**Question**: Is Qwen-Image-Edit-2509 base model good enough, or do we need custom LoRA immediately?
+
+**Assessment criteria**:
+- Character identity preservation rate
+- Edit effectiveness (backgrounds, lighting, angles)
+- Artifact frequency
+- Comparison to dx8152 LoRA quality
+
+**Impact**: High - determines whether Flywheel 2 starts immediately or after Flywheel 1
+
+**Decision by**: End of Phase 1 comprehensive testing
+
+### 2. LoRA Strategy
+**Question**: Use base model first, or train custom LoRA from start?
 
 **Options**:
-- A) Qwen2-VL + FLUX (generate descriptions, then new images)
-- B) Different editing model (InstructPix2Pix, etc.)
-- C) API-based solution (Qwen-VL-Max, DALL-E, etc.)
-- D) Hybrid approach
+- A) Start with base model, train LoRA only if insufficient
+- B) Study dx8152 approach, train LoRA immediately for character consistency
+- C) Use dx8152 LoRA as-is if quality sufficient
 
-**Impact**: High - affects entire architecture
+**Impact**: Medium - affects timeline and complexity
 
-**Decision by**: End of Phase 1
-
-### 2. Model Sizes
-**Question**: Qwen 2B vs 7B? FLUX schnell vs dev?
-
-**Impact**: Medium - affects speed vs quality
-
-**Decision by**: After initial testing
+**Decision by**: After comprehensive testing
 
 ### 3. POC Scope
 **Question**: How minimal for POC? Just Flywheel 1, or both?
@@ -307,14 +377,17 @@ ls -lh test_data/enriched/v1/
 ## Blockers & Risks
 
 ### Immediate Blockers
-1. ⚠️ **CRITICAL**: Qwen2-VL may not do image editing directly
-   - **Mitigation**: Research alternatives TODAY
+1. ✅ **RESOLVED**: Using Qwen-Image-Edit-2509 for actual image editing
+   - Now need to validate quality for our use case
 
 2. ⚠️ Model download time (1-2 hours)
    - **Mitigation**: Start download early, work on other tasks
 
 3. ⚠️ Disk space (need 50GB+ free)
    - **Mitigation**: Check now, clean up if needed
+
+4. ⚠️ **NEW**: dx8152 LoRA may not be "good enough" yet
+   - **Mitigation**: Test thoroughly, prepare to train custom LoRA
 
 ### Medium-term Risks
 1. Editing quality insufficient → Need to try multiple approaches
@@ -340,9 +413,11 @@ ls -lh test_data/enriched/v1/
 ## Next Actions (Right Now)
 
 1. **Install dependencies** (30 min)
-2. **Start Qwen2-VL-2B download** (background)
-3. **Create test_qwen_basic.py** (1 hour)
-4. **Research Qwen2-VL editing capabilities** (critical!)
-5. **Make architecture decision** based on findings
+2. **Start Qwen-Image-Edit-2509 download** (background, 1-2 hours)
+3. **Download dx8152 LoRA** (5 min)
+4. **Create test scripts** (1 hour)
+5. **Run comprehensive editing tests** (2 hours)
+6. **Critical quality assessment** - is it good enough?
+7. **Make LoRA training decision** based on findings
 
-**Start with**: Dependencies installation and model download!
+**Start with**: Dependencies installation and model downloads!

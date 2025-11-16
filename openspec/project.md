@@ -51,7 +51,8 @@ The goal is to achieve robust character consistency across multiple angles, expr
 - **Bootstrap problem**: Initial source material (10-20 images) must have variety in angles/expressions
 
 ## External Dependencies
-- Qwen-VL-Max model (for image editing/enrichment)
+- Qwen-Image-Edit-2509 model (official Qwen image editing model)
+- dx8152/Qwen-Edit-2509-Multiple-angles (community LoRA for reference)
 - FLUX foundation model (for image generation)
 - Face recognition libraries (for automated identity filtering)
-- Diffusers or similar training frameworks
+- Diffusers and PEFT libraries (for training and inference)
