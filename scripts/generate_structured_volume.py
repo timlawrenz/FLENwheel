@@ -167,7 +167,7 @@ class ModelManager:
                 pipeline = QwenImageEditPlusPipeline.from_pretrained(
                     model_path,
                     torch_dtype=torch.float16,  # Better ROCm kernel coverage
-                    device_map="cuda:0"  # Force GPU placement explicitly
+                    device_map="cuda"  # Force GPU placement (use "cuda" not "cuda:0")
                 )
                 
                 logger.info(f"Pipeline loaded on GPU, testing inference on gfx1151")
