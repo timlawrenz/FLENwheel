@@ -166,12 +166,11 @@ class ModelManager:
                 # fp16 has better ROCm support than bfloat16
                 pipeline = QwenImageEditPlusPipeline.from_pretrained(
                     model_path,
-                    torch_dtype=torch.float16  # Better ROCm kernel coverage
+                    torch_dtype=torch.float16,  # Better ROCm kernel coverage
+                    device_map="cuda:0"  # Force GPU placement explicitly
                 )
                 
-                # Try GPU first - if kernels fail, we'll see specific error
-                # (Ollama proves GPU works for some ops on gfx1151)
-                logger.info(f"Pipeline loaded, attempting GPU inference on gfx1151")
+                logger.info(f"Pipeline loaded on GPU, testing inference on gfx1151")
                 
                 # Estimate VRAM (conservative)
                 estimated_vram = 15  # GB, conservative estimate for Qwen with offloading
