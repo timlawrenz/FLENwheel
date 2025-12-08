@@ -327,7 +327,7 @@ class GenerationOrchestrator:
                     image=source_image,
                     prompt=task.prompt,
                     negative_prompt=" ",  # Important: space, not empty
-                    num_inference_steps=40,
+                    num_inference_steps=20,  # Reduced from 40 for speed with sequential offload
                     true_cfg_scale=4.0,
                     guidance_scale=1.0,
                     generator=torch.manual_seed(task.seed),
@@ -350,7 +350,7 @@ class GenerationOrchestrator:
                 'seed': task.seed,
                 'generated_at': datetime.now(timezone.utc).isoformat(),
                 'output_path': str(task.output_path),
-                'inference_steps': 40,
+                'inference_steps': 20,  # Updated to match actual
                 'true_cfg_scale': 4.0,
                 'guidance_scale': 1.0
             }
