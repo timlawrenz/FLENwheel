@@ -1,2 +1,38 @@
 venv/
 test_data/
+
+# Model downloads and generated data
+DFloat11__Qwen-Image-Edit-2509-DF11/
+models/
+data/
+lib/
+config/
+logs/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+env/
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Local testing
+test_output/
+scratch/
+tmp/
