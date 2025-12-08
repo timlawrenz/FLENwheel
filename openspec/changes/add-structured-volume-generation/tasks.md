@@ -1,0 +1,204 @@
+## 1. Infrastructure Setup
+- [ ] 1.1 Configure AMD 7995X server Python environment
+- [ ] 1.2 Verify NAS mount on both servers (`/mnt/nas-ai-models/`)
+- [ ] 1.3 Create NAS directory structure
+  - [ ] `/mnt/nas-ai-models/training-data/flenwheel/sources/`
+  - [ ] `/mnt/nas-ai-models/training-data/flenwheel/generated/`
+  - [ ] `/mnt/nas-ai-models/training-data/flenwheel/curated/`
+  - [ ] `/mnt/nas-ai-models/training-data/flenwheel/loras/`
+  - [ ] `/mnt/nas-ai-models/training-data/flenwheel/templates/`
+- [ ] 1.4 Install dependencies on AMD server
+  - [ ] Python 3.10+
+  - [ ] PyTorch with ROCm support
+  - [ ] Diffusers, PEFT, Transformers
+  - [ ] PyYAML, Pillow
+- [ ] 1.5 Verify model access from AMD server
+  - [ ] Test loading FLUX.2-dev from NAS
+  - [ ] Test loading Qwen-Image-Edit models from NAS
+  - [ ] Test loading LoRAs from NAS
+
+## 2. Prompt Template System
+- [ ] 2.1 Design template YAML schema
+  - [ ] Category name
+  - [ ] Target image count
+  - [ ] Model list to use
+  - [ ] Template definitions with variable placeholders
+  - [ ] Variable expansion rules
+- [ ] 2.2 Create `templates/portraits.yaml`
+  - [ ] Headshots template (angles × expressions)
+  - [ ] Bust shots template (angles × lighting)
+  - [ ] Close-ups template (expressions)
+- [ ] 2.3 Create `templates/body-poses.yaml`
+  - [ ] Standing poses template
+  - [ ] Sitting poses template
+  - [ ] Action/dynamic poses template
+  - [ ] Model card specific poses (t-pose, a-pose)
+- [ ] 2.4 Create `templates/context.yaml`
+  - [ ] Environment variations
+  - [ ] Lighting scenarios
+  - [ ] Clothing changes
+- [ ] 2.5 Create `templates/hands.yaml`
+  - [ ] Visible hands template
+  - [ ] Hand actions template
+  - [ ] Hand close-ups template
+- [ ] 2.6 Template validation script
+  - [ ] Parse all YAML files
+  - [ ] Calculate expected image counts
+  - [ ] Validate model references exist in NAS
+
+## 3. Generation Orchestrator
+- [ ] 3.1 Create `scripts/generate_structured_volume.py`
+- [ ] 3.2 Implement template loader
+  - [ ] Parse YAML templates
+  - [ ] Expand variables into full prompts
+  - [ ] Calculate total work (models × prompts × seeds)
+- [ ] 3.3 Implement model manager
+  - [ ] Load multiple models from NAS
+  - [ ] Handle Qwen-Image-Edit base + LoRAs
+  - [ ] Handle FLUX.2-dev multi-reference
+  - [ ] Memory management for parallel execution
+- [ ] 3.4 Implement parallel generation engine
+  - [ ] Queue-based work distribution
+  - [ ] Run N models concurrently (configurable)
+  - [ ] Progress tracking and logging
+  - [ ] Error handling and retry logic
+- [ ] 3.5 Implement output management
+  - [ ] Save images to category-specific directories
+  - [ ] Generate metadata JSON per image
+    - [ ] Source image path
+    - [ ] Model used
+    - [ ] Prompt
+    - [ ] Seed
+    - [ ] Category
+    - [ ] Generation timestamp
+  - [ ] Progress checkpointing (resume after crashes)
+- [ ] 3.6 Test orchestrator on small batch
+  - [ ] 2 models × 10 prompts = 20 images
+  - [ ] Verify parallel execution works
+  - [ ] Verify metadata accuracy
+  - [ ] Measure VRAM usage on AMD server
+
+## 4. ELO Voting System
+- [ ] 4.1 Decide: Standalone app or turbo-carnival integration
+- [ ] 4.2 Create voting database schema
+  - [ ] `training_images` table (path, category, model, elo_score, metadata)
+  - [ ] `votes` table (winner_id, loser_id, timestamp)
+- [ ] 4.3 Port RecordVote logic from turbo-carnival
+  - [ ] ELO calculation (`calculate_elo_change`)
+  - [ ] Vote recording
+  - [ ] Score updates
+- [ ] 4.4 Build web UI
+  - [ ] Image loader (reads from NAS paths)
+  - [ ] A/B comparison view
+  - [ ] Category filter (vote within category)
+  - [ ] Keyboard shortcuts (left/right for voting)
+  - [ ] Progress tracker (X of Y votes)
+- [ ] 4.5 Implement batch operations
+  - [ ] "Accept all from this model" (shortcuts for clear winners)
+  - [ ] "Reject all from this model" (shortcuts for clear losers)
+  - [ ] "Top 10%" auto-selection per category
+- [ ] 4.6 Build curation export
+  - [ ] Select top N by ELO per category
+  - [ ] Copy winners to `/curated/` directory
+  - [ ] Generate training manifest (image paths + captions)
+
+## 5. Metadata Tracking and Analytics
+- [ ] 5.1 Create metadata database schema
+  - [ ] Track model performance (avg ELO by model)
+  - [ ] Track category coverage (images per category)
+  - [ ] Track prompt effectiveness (which prompts → high ELO)
+- [ ] 5.2 Build analytics dashboard
+  - [ ] Model performance comparison
+  - [ ] Category distribution visualization
+  - [ ] ELO score distribution per model
+  - [ ] Identify "best model per category" patterns
+- [ ] 5.3 Export statistics for future learning layer
+  - [ ] JSON export of model rankings
+  - [ ] Training data for recommender system
+
+## 6. Integration with Existing Workflow
+- [ ] 6.1 Update captioning script
+  - [ ] Read curated images from NAS
+  - [ ] Generate captions with instance token
+  - [ ] Save to ai-toolkit compatible format
+- [ ] 6.2 Update LoRA training config
+  - [ ] Point to NAS curated dataset
+  - [ ] Save trained LoRA to `/mnt/nas-ai-models/loras/flux/`
+- [ ] 6.3 Update model card generation
+  - [ ] Use trained LoRA from NAS
+  - [ ] Generate 23 benchmark images
+  - [ ] Save results to NAS with versioning
+
+## 7. Documentation
+- [ ] 7.1 Update `README.md`
+  - [ ] Add dual-server architecture diagram
+  - [ ] Document NAS storage structure
+  - [ ] Update workflow from single-model to volume approach
+- [ ] 7.2 Update `openspec/project.md`
+  - [ ] Add AMD server specs
+  - [ ] Document NAS mount point
+  - [ ] Update constraints (now multi-server)
+- [ ] 7.3 Create `docs/structured-volume-generation.md`
+  - [ ] Template system guide
+  - [ ] Orchestrator usage
+  - [ ] ELO voting workflow
+  - [ ] Best practices for prompt templates
+- [ ] 7.4 Create `docs/dual-server-setup.md`
+  - [ ] AMD server configuration
+  - [ ] NAS mount instructions
+  - [ ] Network configuration
+  - [ ] Troubleshooting common issues
+
+## 8. Testing and Validation
+- [ ] 8.1 End-to-end test with small dataset
+  - [ ] 5 source images
+  - [ ] 4 models × 25 prompts = 100 generated images
+  - [ ] ELO voting session (~30 minutes)
+  - [ ] Select top 40 for training
+  - [ ] Train LoRA
+  - [ ] Generate model card
+  - [ ] Measure success rate
+- [ ] 8.2 Performance benchmarking
+  - [ ] AMD server: images/hour with 4 parallel models
+  - [ ] AMD server: VRAM usage per model
+  - [ ] NAS I/O: read/write speeds during generation
+  - [ ] Voting UI: votes/minute (human speed)
+- [ ] 8.3 Quality validation
+  - [ ] Face similarity scores of generated images
+  - [ ] Category coverage (all templates represented)
+  - [ ] ELO score distribution (sanity check)
+  - [ ] Final LoRA quality on model card
+
+## 9. First Production Run
+- [ ] 9.1 Prepare source dataset
+  - [ ] Select character (10-20 source images)
+  - [ ] Copy to `/mnt/nas-ai-models/training-data/flenwheel/sources/character-001/`
+- [ ] 9.2 Run generation (AMD server)
+  - [ ] Execute orchestrator for all categories
+  - [ ] Monitor progress and errors
+  - [ ] Estimated time: 12-24 hours for 700 images
+- [ ] 9.3 ELO voting session (RTX 4090)
+  - [ ] Vote on generated images
+  - [ ] Target: 2-4 hours, ~200-300 votes
+  - [ ] Select top 200 images
+- [ ] 9.4 LoRA training (RTX 4090)
+  - [ ] Train on curated dataset
+  - [ ] Generate model card
+  - [ ] Evaluate results
+- [ ] 9.5 Retrospective
+  - [ ] Which models performed best?
+  - [ ] Which categories needed more coverage?
+  - [ ] Adjust templates for next iteration
+  - [ ] Document learnings
+
+## 10. Future Enhancements (Deferred)
+- [ ] 10.1 ML-based model selection
+  - [ ] Train recommender after 3+ characters
+  - [ ] Predict best models for new characters
+- [ ] 10.2 Automated pre-filtering
+  - [ ] Face similarity threshold
+  - [ ] Aesthetic score filtering
+  - [ ] Artifact detection
+- [ ] 10.3 Progressive refinement
+  - [ ] Use v1 LoRA to generate v2 training data
+  - [ ] Iterative improvement loop
