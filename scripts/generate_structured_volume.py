@@ -161,16 +161,16 @@ class ModelManager:
             logger.info(f"Loading model: {model_key} from {model_path}")
             
             try:
-                # Load Qwen-Image-Edit pipeline
-                # Try fp16 on GPU - Ollama works, so GPU kernels partially functional
-                # fp16 has better ROCm support than bfloat16
+                # Load Qwen-Image-Edit pipeline with CPU offloading for RTX 4090
                 pipeline = QwenImageEditPlusPipeline.from_pretrained(
                     model_path,
-                    torch_dtype=torch.float16,  # Better ROCm kernel coverage
-                    device_map="cuda"  # Force GPU placement (use "cuda" not "cuda:0")
+                    torch_dtype=torch.bfloat16
                 )
                 
-                logger.info(f"Pipeline loaded on GPU, testing inference on gfx1151")
+                # Use model CPU offload for better memory efficiency (24GB VRAM limit)
+                pipeline.enable_model_cpu_offload()
+                
+                logger.info(f"Pipeline loaded with CPU offload")
                 
                 # Estimate VRAM (conservative)
                 estimated_vram = 15  # GB, conservative estimate for Qwen with offloading
