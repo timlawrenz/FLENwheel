@@ -214,3 +214,87 @@ scripts/generate_structured_volume.py
 - [ ] ~~Actual image generation~~ (next phase)
 
 **Conclusion**: Infrastructure is ready. Next focus: integrate actual model inference.
+
+---
+
+## Phase 2: Option A - Integrate Actual Generation (In Progress)
+
+**Date**: 2025-12-08 (continued)
+
+### Completed
+- ✅ Added Diffusers imports to orchestrator
+- ✅ Implemented `ModelManager.load_model()` with actual `QwenImageEditPlusPipeline`
+- ✅ Implemented `execute_task()` with real image generation
+- ✅ Model loading working (loads in ~1-2 seconds)
+- ✅ Source image selection (random from available)
+- ✅ Metadata enhanced with actual generation parameters
+
+### Issues Encountered
+
+**VRAM Management on RTX 4090**:
+- Qwen-Image-Edit-2509 with bfloat16 + CPU offload consumes ~22GB VRAM
+- First generation attempt runs but hits OOM during inference
+- Device placement errors after OOM (`cuda:0` vs `cpu` tensor mismatch)
+- 24GB RTX 4090 is at capacity with single model
+
+**Root Cause**:
+- ComfyUI was using 18.72GB when first tested (now stopped)
+- Even with clean GPU, Qwen model fills nearly all 24GB
+- `enable_model_cpu_offload()` helps but not enough for 24GB GPU
+
+### Solutions to Implement
+
+**Option 1: Use 8-bit quantization** (fastest fix for RTX 4090)
+```python
+pipeline = QwenImageEditPlusPipeline.from_pretrained(
+    model_path,
+    torch_dtype=torch.float16,  # or bfloat16
+    load_in_8bit=True  # Reduce VRAM by ~40%
+)
+```
+
+**Option 2: Move to AMD server** (recommended for production)
+- 128GB VRAM can easily handle 4-6 models in parallel
+- This was the original plan
+- RTX 4090 better suited for LoRA training, not parallel generation
+
+**Option 3: Reduce inference steps** (quality vs speed trade-off)
+```python
+num_inference_steps=20  # vs current 40
+# Halves generation time and reduces peak VRAM
+```
+
+### Next Steps
+
+**Immediate** (choose one):
+1. **Quantization**: Add 8-bit support to ModelManager (test on RTX 4090)
+2. **AMD Server**: Set up AMD environment and move generation there
+3. **Hybrid**: Keep RTX 4090 for single-model testing, AMD for production volume
+
+**Recommendation**: Go with **AMD Server** (Option 2) since:
+- Original architecture design
+- Enables 4-6 parallel models (core value proposition)
+- RTX 4090 freed up for training and ELO voting UI
+
+### Code Changes Made
+
+**Updated files**:
+- `scripts/generate_structured_volume.py`:
+  - Added ML imports (torch, diffusers, PIL)
+  - `ModelManager.load_model()`: Real Diffusers loading
+  - `ModelManager.get_pipeline()`: Accessor for loaded pipelines
+  - `execute_task()`: Actual generation with Qwen pipeline
+  - Metadata tracking: Added actual source image used, generation params
+
+**New test template**:
+- `/mnt/nas-ai-models/training-data/flenwheel/templates/test.yaml`
+- 5 prompts for quick validation
+
+### Lessons Learned
+
+1. **RTX 4090 (24GB) is tight for Qwen-Image-Edit**: Need quantization or AMD server
+2. **Model loading works great**: ~1-2 seconds with CPU offload
+3. **Device placement is sensitive**: OOM leads to cuda/cpu tensor mismatches
+4. **Architecture is validated**: Template expansion, task generation, metadata all working
+
+**Status**: Infrastructure proven, memory optimization needed for RTX 4090 testing.

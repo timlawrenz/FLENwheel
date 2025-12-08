@@ -19,14 +19,20 @@ import os
 import sys
 import time
 import yaml
+import random
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from itertools import product
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from queue import Queue
 import threading
+
+# ML libraries
+import torch
+from diffusers import QwenImageEditPlusPipeline
+from PIL import Image
 
 # Configure logging
 logging.basicConfig(
@@ -41,6 +47,10 @@ TRAINING_DATA = NAS_ROOT / "training-data" / "flenwheel"
 TEMPLATES_DIR = TRAINING_DATA / "templates"
 SOURCES_DIR = TRAINING_DATA / "sources"
 GENERATED_DIR = TRAINING_DATA / "generated"
+
+# Model paths
+QWEN_BASE_PATH = "/mnt/essdee/ComfyUI/models/diffusers/qwen-image-edit-2509"
+QWEN_ANGLES_PATH = "/mnt/essdee/ComfyUI/models/diffusers/qwen-edit-multiple-angles"
 
 @dataclass
 class GenerationTask:
@@ -126,31 +136,67 @@ class ModelManager:
         self.loaded_models = {}
         self.vram_usage_gb = 0
         self.lock = threading.Lock()
+        
+        # Model path mapping
+        self.model_paths = {
+            'qwen-base': QWEN_BASE_PATH,
+            'qwen-angles': QWEN_ANGLES_PATH,
+            'qwen-lighting': QWEN_BASE_PATH,  # Same as base for now
+            'flux2-multiref': None,  # TODO: Add FLUX.2 support
+        }
     
     def load_model(self, model_name: str, lora_name: Optional[str] = None):
-        """Load a model (placeholder - actual implementation will use Diffusers)"""
-        # TODO: Implement actual model loading with Diffusers
-        # For now, just track what should be loaded
-        
+        """Load a model with Diffusers"""
         model_key = f"{model_name}_{lora_name or 'base'}"
         
         with self.lock:
-            if model_key not in self.loaded_models:
-                logger.info(f"Loading model: {model_key}")
-                # Simulate VRAM usage (replace with actual)
-                estimated_vram = 20  # GB, placeholder
+            if model_key in self.loaded_models:
+                return model_key
+            
+            model_path = self.model_paths.get(model_name)
+            if model_path is None:
+                logger.warning(f"Model {model_name} not yet supported, skipping")
+                return None
+            
+            logger.info(f"Loading model: {model_key} from {model_path}")
+            
+            try:
+                # Load Qwen-Image-Edit pipeline
+                pipeline = QwenImageEditPlusPipeline.from_pretrained(
+                    model_path,
+                    torch_dtype=torch.bfloat16
+                )
+                
+                # Use model CPU offload for better memory efficiency
+                pipeline.enable_model_cpu_offload()
+                
+                # Estimate VRAM (conservative)
+                estimated_vram = 15  # GB, conservative estimate for Qwen with offloading
                 
                 if self.vram_usage_gb + estimated_vram > self.max_vram_gb:
-                    raise RuntimeError(f"Insufficient VRAM: {self.vram_usage_gb + estimated_vram}GB exceeds {self.max_vram_gb}GB")
+                    logger.warning(f"Insufficient VRAM: {self.vram_usage_gb + estimated_vram}GB exceeds {self.max_vram_gb}GB")
+                    # Don't raise error, just don't load more models
+                    return None
                 
                 self.loaded_models[model_key] = {
+                    'pipeline': pipeline,
                     'model_name': model_name,
                     'lora_name': lora_name,
                     'vram_gb': estimated_vram
                 }
                 self.vram_usage_gb += estimated_vram
                 
+                logger.info(f"✓ Model loaded successfully, VRAM: {self.vram_usage_gb}/{self.max_vram_gb}GB")
+                
+            except Exception as e:
+                logger.error(f"Failed to load model {model_key}: {e}")
+                return None
+                
         return model_key
+    
+    def get_pipeline(self, model_key: str):
+        """Get loaded pipeline"""
+        return self.loaded_models.get(model_key, {}).get('pipeline')
     
     def get_vram_usage(self) -> Dict[str, float]:
         """Get current VRAM usage statistics"""
@@ -253,12 +299,36 @@ class GenerationOrchestrator:
             # Load model (if not already loaded)
             model_key = self.model_manager.load_model(task.model_name, task.lora_name)
             
-            # TODO: Actual generation using Diffusers
-            # For now, create placeholder metadata
-            logger.info(f"Generating: {task.output_path.name}")
+            if model_key is None:
+                raise ValueError(f"Failed to load model: {task.model_name}")
             
-            # Simulate generation time
-            time.sleep(0.1)  # Remove this when real generation is implemented
+            # Get pipeline
+            pipeline = self.model_manager.get_pipeline(model_key)
+            if pipeline is None:
+                raise ValueError(f"Pipeline not found for {model_key}")
+            
+            # Select random source image
+            source_image_path = random.choice(task.source_images)
+            source_image = Image.open(source_image_path)
+            
+            logger.info(f"Generating: {task.output_path.name} (source: {source_image_path.name})")
+            
+            # Generate image
+            with torch.inference_mode():
+                output = pipeline(
+                    image=source_image,
+                    prompt=task.prompt,
+                    negative_prompt=" ",  # Important: space, not empty
+                    num_inference_steps=40,
+                    true_cfg_scale=4.0,
+                    guidance_scale=1.0,
+                    generator=torch.manual_seed(task.seed),
+                )
+            
+            result_image = output.images[0]
+            
+            # Save image
+            result_image.save(task.output_path)
             
             # Save metadata
             metadata = {
@@ -267,20 +337,21 @@ class GenerationOrchestrator:
                 'prompt': task.prompt,
                 'model_name': task.model_name,
                 'lora_name': task.lora_name,
-                'source_images': [str(p) for p in task.source_images],
+                'source_image': str(source_image_path),
+                'source_images_available': [str(p) for p in task.source_images],
                 'seed': task.seed,
-                'generated_at': datetime.utcnow().isoformat(),
-                'output_path': str(task.output_path)
+                'generated_at': datetime.now(timezone.utc).isoformat(),
+                'output_path': str(task.output_path),
+                'inference_steps': 40,
+                'true_cfg_scale': 4.0,
+                'guidance_scale': 1.0
             }
             
             with open(task.metadata_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
             
-            # Create placeholder image file (remove when real generation works)
-            task.output_path.touch()
-            
             duration = time.time() - start_time
-            logger.info(f"✓ Generated {task.output_path.name} in {duration:.2f}s")
+            logger.info(f"✓ Generated {task.output_path.name} in {duration:.1f}s")
             
             return GenerationResult(
                 task=task,
