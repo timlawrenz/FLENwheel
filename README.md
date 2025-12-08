@@ -2,40 +2,63 @@
 
 **FLEN**wheel: **FL**ux + qw**EN** dual-flywheel training
 
-A human-in-the-loop AI training system for creating high-quality character LoRAs through iterative refinement.
+A human-in-the-loop AI training system for creating high-quality character LoRAs through **volume generation and ELO-based curation**.
 
 ## Overview
 
-FLENwheel uses a dual-flywheel approach to create robust character LoRAs for FLUX image generation:
+FLENwheel uses a volume-first approach to create robust character LoRAs:
 
-1. **Flywheel 1 - Character LoRA Training**: Qwen-Image-Edit enriches source material → FLUX LoRA training → synthetic data generation → human review → improved training data
-2. **Flywheel 2 - Editor Refinement**: Human corrections feed back to fine-tune the Qwen-Image-Edit editor itself
+**Core Strategy**: Generate 500-1000 images using multiple models in parallel → ELO voting to curate best 200-400 → Train LoRA on curated dataset
 
-The system runs entirely on a single machine with an NVIDIA RTX 4090, using human guidance to prevent model drift and ensure quality.
+Key principles:
+- **Volume over precision**: Statistical robustness from diverse data
+- **Category coverage**: Portraits, body poses, context, hands (not random mass)
+- **ELO curation**: Human-in-the-loop quality control via pairwise voting
+- **Parallel execution**: 4-6 models running simultaneously on AMD server (128GB VRAM)
+- **Adaptive to ecosystem**: Use all available models, let results determine best performers
 
-## 🚀 Major Update: Ecosystem Discovery
+## Current Status
 
-**Active ecosystem of specialized Qwen-Image-Edit LoRAs discovered!**
+🚧 **Active Development** - Volume generation system implemented
 
-Multiple community fine-tunes exist for:
-- **Angle changes**: Camera viewpoint adjustments
-- **Face preservation**: Identity-preserving edits
-- **Lighting/skin**: Complexion and lighting adjustments
-- **Style transfer**: Technique references
+**Latest**: 2025-12-08
+- ✅ Infrastructure complete (OpenSpec proposal, NAS setup, templates)
+- ✅ Generation orchestrator with real Diffusers integration
+- ✅ Validated on RTX 4090 (needs AMD server for parallel execution)
+- ⏭️ **Next**: AMD server setup for production volume generation
 
-**Strategy options**:
-1. Use existing specialized LoRAs (fastest)
-2. Combine multiple LoRAs for different tasks
-3. Train custom character-specific LoRA
-4. Hybrid: existing + custom refinement
+See [SESSION_SUMMARY.md](SESSION_SUMMARY.md) for detailed progress.
 
-See [docs/qwen-ecosystem-analysis.md](docs/qwen-ecosystem-analysis.md) for full analysis.
+## Architecture
 
-## Project Status
+### Dual-Server Setup
 
-🚧 **Early Development** - Currently in the definition and planning phase
+**AMD 7995X (128GB VRAM)**: Parallel mass generation
+- Run 4-6 models simultaneously
+- Generate 500-1000 images in 12-24 hours
+- Template-driven prompt expansion
 
-**Next**: Ecosystem survey and validation (Week 1, 7-10 hours)
+**RTX 4090 (24GB VRAM)**: Curation and training
+- ELO voting UI for image selection
+- LoRA training with ai-toolkit
+- Model card generation
+
+### Shared NAS Storage
+
+**Location**: `/mnt/nas-ai-models/training-data/flenwheel/`
+- 32TB capacity, 11TB free
+- Accessible from both servers
+- Model repository, training data, templates
+
+### Prompt Template System
+
+YAML-based templates ensure coverage:
+- **portraits.yaml**: 184 images (angles × expressions × lighting)
+- **body-poses.yaml**: 130 images (full body, t-pose, sitting, action)
+- **hands.yaml**: 68 images (critical for LoRA quality)
+- **context.yaml**: 210 images (environments × clothing)
+
+Total: ~592 baseline tasks → 1,184 images with 2 seeds
 
 ## Goals
 
@@ -47,14 +70,44 @@ See [docs/qwen-ecosystem-analysis.md](docs/qwen-ecosystem-analysis.md) for full 
 
 ## Tech Stack
 
-- **GPU**: NVIDIA RTX 4090 (24GB VRAM)
-- **Image Generation**: FLUX foundation model with character LoRAs
-- **Image Editing**: Qwen-VL-Max for dataset enrichment
-- **Training**: LoRA/PEFT techniques (QLoRA, 8-bit optimizers, gradient checkpointing)
+- **Hardware**:
+  - AMD 7995X APU (128GB VRAM) - Parallel generation
+  - NVIDIA RTX 4090 (24GB VRAM) - Training and curation
+  - Shared NAS storage (32TB)
+- **Image Generation**: 
+  - Qwen-Image-Edit-2509 (multiple models/LoRAs)
+  - FLUX.2-dev (multi-reference support)
+  - FLUX.1-dev (character LoRAs)
+- **Training**: ai-toolkit (FLUX LoRA training), PEFT
 - **Language**: Python
-- **Framework**: Diffusers library (planned)
+- **Framework**: Diffusers, PyTorch
+- **Framework**: Diffusers, PyTorch
 
-## Workflow Phases
+## Workflow
+
+```
+1. GENERATION (AMD Server, 12-24 hours)
+   ├─ Load YAML templates from NAS
+   ├─ Run 4-6 models in parallel
+   ├─ Generate 500-1000 categorized images
+   └─ Save to NAS with metadata
+
+2. CURATION (RTX 4090, 2-4 hours)
+   ├─ ELO voting: pairwise A/B comparisons
+   ├─ Category-filtered (portraits, body, hands, context)
+   ├─ Select top 200-400 images by ELO score
+   └─ Export to curated directory
+
+3. TRAINING (RTX 4090, 2-4 hours)
+   ├─ Train FLUX LoRA on curated dataset
+   ├─ Generate model card (23 benchmark images)
+   └─ Evaluate success rate
+
+4. ITERATE
+   └─ Refine templates based on results
+```
+
+## Documentation
 
 ### Phase 1: Source Material Curation
 - Gather 10-20 initial images (photos, sketches, renderings)
