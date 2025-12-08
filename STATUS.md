@@ -1,9 +1,370 @@
 # FLENwheel Project Status Report
 
-**Generated**: 2025-11-16 17:04 UTC  
+**Generated**: 2025-12-08 23:08 UTC  
 **Repository**: github.com/timlawrenz/FLENwheel  
-**Branch**: main  
-**Status**: ✅ All documentation up-to-date and committed
+**Branch**: main (merged from volume)  
+**Status**: 🚧 Volume generation implementation in progress
+
+---
+
+## Current Phase: Volume Generation (Week 1)
+
+### ✅ Completed Today (2025-12-08)
+
+**Infrastructure** (Phase 1):
+- [x] OpenSpec proposal created (3 specs, 65 scenarios, 180+ tasks)
+- [x] NAS directory structure set up (/mnt/nas-ai-models/training-data/flenwheel/)
+- [x] Prompt templates created (5 YAML files: 592 base prompts)
+- [x] Generation orchestrator framework implemented
+
+**Implementation** (Phase 2):
+- [x] Diffusers integration (QwenImageEditPlusPipeline)
+- [x] Parallel execution with ThreadPoolExecutor
+- [x] Metadata tracking (JSON per image)
+- [x] Model paths updated to NAS storage
+- [x] Source images downloaded (55 Lando images from Crawlr API)
+
+**Documentation**:
+- [x] SESSION_SUMMARY.md created
+- [x] IMPLEMENTATION_LOG.md created
+- [x] CLEANUP_PLAN.md created
+- [x] docs/amd-server-setup.md (AMD ROCm investigation)
+- [x] Repository cleanup (.gitignore, archived old scripts)
+
+**AMD Server Investigation**:
+- [x] Complete setup attempt on AMD Radeon 8060S (gfx1151)
+- [x] Documented PyTorch ROCm 6.1 kernel incompatibility
+- [x] Decision: Use RTX 4090 for production, AMD for Ollama
+- [x] Comprehensive findings in docs/amd-server-setup.md
+
+### 🚧 In Progress
+
+**Current Issue**: CUDA OOM during inference on RTX 4090
+- Model loads successfully (1.1s, 15GB VRAM)
+- Fails at inference step 0 (22.87GB / 23.49GB used)
+- Need: Attention slicing + VAE tiling for memory optimization
+
+**Status**: Implementing Option 1 (memory optimizations)
+
+### ⏭️ Next Steps (Tonight)
+
+1. **Fix RTX 4090 inference** (30 mins):
+   - Add attention slicing
+   - Enable VAE tiling
+   - Add memory cleanup between generations
+   
+2. **Clean up templates** (15 mins):
+   - Remove qwen-angles (LoRA, not full model)
+   - Remove qwen-lighting (duplicate of qwen-base)
+   - Remove flux2-multiref (doesn't exist)
+   - Keep only qwen-base for initial run
+
+3. **Launch overnight generation** (12-24 hours):
+   - Character: lando (55 source images)
+   - Categories: portraits, body-poses, context, hands
+   - Expected: ~600 images (simplified from 1,184)
+   - Output: /mnt/nas-ai-models/training-data/flenwheel/generated/lando/
+
+4. **Tomorrow**: Vote on generated images with 4-button UI
+
+---
+
+## Hardware Setup
+
+### RTX 4090 Server (Primary)
+- **GPU**: NVIDIA RTX 4090 (24GB VRAM)
+- **Status**: ✅ Operational, fixing inference OOM
+- **Use**: Volume generation, LoRA training
+- **Location**: /home/tim/source/activity/FLENwheel
+
+### AMD Server (Secondary)
+- **GPU**: AMD Radeon 8060S (96GB unified memory, gfx1151)
+- **Status**: ⚠️ PyTorch Diffusers incompatible (ROCm 6.1)
+- **Use**: Ollama (qwen2-vl:32b working perfectly)
+- **Next retry**: Q1 2025 (PyTorch ROCm 6.3+)
+
+### Shared Storage (NAS)
+- **Path**: /mnt/nas-ai-models/
+- **Models**: qwen-image-edit-2509 (shared)
+- **Data**: training-data/flenwheel/ (sources, generated, curated)
+- **Templates**: Prompt YAML files
+
+---
+
+## Volume Generation Workflow
+
+### Current Strategy: Mass Generation + Human Curation
+
+**Phase 1**: Preparation ✅
+- Source images: 55 Lando photos (downloaded from Crawlr)
+- Templates: 5 categories, 592 prompts
+- Models: qwen-base (working)
+
+**Phase 2**: Volume Generation 🚧
+- Generate 600-1000 variations
+- Random source selection per prompt
+- Metadata tracking
+- **Status**: Fixing VRAM issues
+
+**Phase 3**: ELO Curation 📋 (Week 2)
+- 4-button voting UI:
+  - ✅ "Yes, totally" - Include in training
+  - ❌ "No, never" - Exclude and avoid pattern
+  - ⬅️ "Left better" - Pairwise ELO ranking
+  - ➡️ "Right better" - Pairwise ELO ranking
+- Target: Top 200-400 images for training
+
+**Phase 4**: LoRA Training 📋 (Week 2-3)
+- Use ai-toolkit (proven working)
+- Train on curated dataset
+- Generate model card (23 benchmarks)
+- Evaluate and iterate
+
+---
+
+## Adaptive Generation (Future)
+
+### Explore-Exploit Strategy (Week 3+)
+
+**Concept**: UCB (Upper Confidence Bound) multi-armed bandit
+- Generate small batches (20 images)
+- Quick human feedback
+- Adjust distribution based on what works
+- 70% proven winners + 30% exploration
+
+**Benefits**:
+- Early failure detection (stop wasting GPU on bad combos)
+- Focus on what works (higher quality output)
+- Discover surprises (unexpected combinations)
+- Natural stopping criteria (ELO plateau)
+
+**Implementation Priority**: After first LoRA trained
+- Learn what "good" means first
+- Then optimize generation process
+
+### Genetic Algorithm (Future)
+
+**Status**: Interesting but not urgent
+- Better for iteration 2-3
+- Needs clear fitness function
+- Current priority: Coverage over optimization
+
+---
+
+## Technical Issues & Solutions
+
+### Issue 1: CUDA OOM During Inference ⚠️
+**Problem**: Model loads (15GB) but fails during inference (needs 23GB+)
+**Solution**: 
+- enable_attention_slicing()
+- enable_vae_tiling()
+- torch.cuda.empty_cache() between generations
+**Status**: Implementing now
+
+### Issue 2: Missing Models ✅
+**Problem**: Templates reference non-existent models
+- qwen-angles: LoRA file, not full pipeline
+- qwen-lighting: Same as qwen-base
+- flux2-multiref: Doesn't exist
+**Solution**: Simplify templates to qwen-base only
+**Status**: To implement after memory fix
+
+### Issue 3: AMD ROCm Incompatibility ✅
+**Problem**: gfx1151 missing HIP kernels for diffusion
+**Solution**: Use RTX 4090, revisit AMD in Q1 2025
+**Status**: Documented, moved on
+
+---
+
+## Repository Structure
+
+```
+FLENwheel/
+├── scripts/
+│   └── generate_structured_volume.py  (Main orchestrator)
+├── docs/
+│   ├── amd-server-setup.md           (ROCm findings)
+│   └── [other docs]
+├── openspec/                          (Proposals)
+├── SESSION_SUMMARY.md                 (Today's work)
+├── IMPLEMENTATION_LOG.md              (Build notes)
+├── CLEANUP_PLAN.md                    (Cleanup tracking)
+└── STATUS.md                          (This file)
+
+NAS: /mnt/nas-ai-models/training-data/flenwheel/
+├── sources/lando/                     (55 source images)
+├── templates/                         (5 YAML files)
+├── generated/lando/                   (Output, in progress)
+└── curated/                           (Future: post-voting)
+```
+
+---
+
+## Metrics & Progress
+
+### Today's Achievements
+- **Commits**: 13 (volume branch) + documentation
+- **Lines of code**: ~600 (orchestrator + templates)
+- **Source images**: 55 downloaded
+- **Templates**: 592 prompts across 5 categories
+- **Documentation**: 4 new files, ~500 lines
+
+### Expected Overnight
+- **Images generated**: 600-1000
+- **GPU time**: 12-24 hours
+- **Categories**: portraits, body-poses, context, hands
+- **Success rate**: TBD (first full run)
+
+### Week 1 Goals
+- [x] Infrastructure built
+- [ ] First generation batch complete
+- [ ] Voting UI designed (4-button concept ready)
+- [ ] First LoRA trained
+- [ ] Model card evaluated
+
+---
+
+## Key Decisions Made
+
+### Strategy
+✅ **Volume generation over perfect generation**
+- Generate 600-1000 images, curate best 200-400
+- Human-in-loop for quality control
+- Iterate based on learnings
+
+✅ **RTX 4090 as primary, AMD as secondary**
+- RTX 4090: Proven, works now
+- AMD: Future experiments, Ollama
+
+✅ **Adaptive generation for iteration 2+**
+- UCB explore-exploit for Week 3+
+- GA for optimization (if needed)
+- Learn from blind volume first
+
+### Technical
+✅ **Diffusers over ComfyUI for automation**
+- Programmatic control
+- Batch processing
+- Metadata tracking
+
+✅ **NAS for shared storage**
+- Both servers access same models
+- Centralized data management
+- Easy backup and versioning
+
+---
+
+## Success Criteria
+
+### Tonight (Immediate)
+- ✅ Fix CUDA OOM issue
+- ✅ Generate first successful image
+- ✅ Launch overnight batch
+
+### Week 1
+- ✅ 200+ viable training images
+- ✅ First LoRA trained
+- ✅ Model card attempted (23 benchmarks)
+- ✅ Success rate measured
+
+### Week 2-3
+- ✅ Voting UI implemented
+- ✅ Adaptive generation working
+- ✅ Second LoRA iteration
+- ✅ Improved model card results
+
+---
+
+## Risk Assessment
+
+### High Risk ⚠️
+- CUDA OOM during inference (IN PROGRESS)
+  - Mitigation: Memory optimizations
+
+### Medium Risk ⚙️
+- Unknown quality of generated images
+  - Mitigation: Human voting, iterate
+- Time to generate full dataset (12-24 hrs)
+  - Mitigation: Overnight runs
+
+### Low Risk ✅
+- AMD server (documented workaround)
+- Storage capacity (NAS ample space)
+- Model availability (qwen-base working)
+
+---
+
+## Timeline
+
+**Tonight** (Dec 8, 11pm):
+- Fix VRAM issues
+- Launch overnight generation
+
+**Tomorrow** (Dec 9):
+- Review generated images
+- Design voting UI
+- Start ELO curation
+
+**Week 2** (Dec 9-15):
+- Build 4-button voting system
+- Curate top 200-400 images
+- Train first LoRA
+- Generate model card
+
+**Week 3** (Dec 16-22):
+- Implement UCB adaptive generation
+- Second LoRA iteration
+- Evaluate improvements
+- Consider GA if needed
+
+---
+
+## Next Immediate Actions
+
+**1. Fix RTX 4090 inference** (NOW):
+```python
+# Add to model_manager.py after loading:
+pipeline.enable_attention_slicing()
+pipeline.vae.enable_tiling()
+```
+
+**2. Test with single image**:
+```bash
+python scripts/generate_structured_volume.py \
+  --character lando \
+  --categories test \
+  --parallel 1 \
+  --seeds 1
+```
+
+**3. Launch full run**:
+```bash
+python scripts/generate_structured_volume.py \
+  --character lando \
+  --categories portraits,body-poses,context,hands \
+  --parallel 1 \
+  --seeds 2
+```
+
+**4. Go to bed, wake up to data** 🌙
+
+---
+
+## Bottom Line
+
+**Status**: Infrastructure complete, fixing inference issues, ready for overnight production run.
+
+**Confidence**: High (80%) - Known issue with known solution
+
+**Timeline**: On track for Week 1 LoRA training
+
+**Next Milestone**: First successful batch generation (tonight)
+
+---
+
+*Last updated: 2025-12-08 23:08 UTC*
+*Branch: main (merged volume)*
+*Commits today: 14+*
 
 ---
 

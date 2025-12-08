@@ -167,10 +167,15 @@ class ModelManager:
                     torch_dtype=torch.bfloat16
                 )
                 
-                # Use model CPU offload for better memory efficiency (24GB VRAM limit)
+                # Memory optimizations for RTX 4090 (24GB VRAM limit)
                 pipeline.enable_model_cpu_offload()
                 
-                logger.info(f"Pipeline loaded with CPU offload")
+                # Critical: Reduce VRAM during inference
+                pipeline.enable_attention_slicing()  # Slice attention computation
+                if hasattr(pipeline, 'vae'):
+                    pipeline.vae.enable_tiling()  # Tile VAE for lower VRAM
+                
+                logger.info(f"Pipeline loaded with CPU offload + memory optimizations")
                 
                 # Estimate VRAM (conservative)
                 estimated_vram = 15  # GB, conservative estimate for Qwen with offloading
@@ -364,6 +369,13 @@ class GenerationOrchestrator:
         except Exception as e:
             duration = time.time() - start_time
             logger.error(f"✗ Failed {task.output_path.name}: {e}")
+            
+            # Clean up VRAM after failure to prevent accumulation
+            if 'CUDA out of memory' in str(e) or 'Expected all tensors' in str(e):
+                import gc
+                gc.collect()
+                torch.cuda.empty_cache()
+                logger.info("Cleaned up GPU memory after failure")
             
             return GenerationResult(
                 task=task,
