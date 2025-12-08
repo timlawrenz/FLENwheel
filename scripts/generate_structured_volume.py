@@ -162,13 +162,15 @@ class ModelManager:
             
             try:
                 # Load Qwen-Image-Edit pipeline
+                # Note: Using CPU mode on AMD APU due to ROCm kernel incompatibility
                 pipeline = QwenImageEditPlusPipeline.from_pretrained(
                     model_path,
-                    torch_dtype=torch.bfloat16
+                    torch_dtype=torch.float32  # CPU prefers float32
                 )
                 
-                # Use model CPU offload for better memory efficiency
-                pipeline.enable_model_cpu_offload()
+                # Force CPU mode (APU GPU kernels incompatible with this model)
+                pipeline.to("cpu")
+                logger.info(f"Pipeline running on CPU (96GB unified memory available)")
                 
                 # Estimate VRAM (conservative)
                 estimated_vram = 15  # GB, conservative estimate for Qwen with offloading
