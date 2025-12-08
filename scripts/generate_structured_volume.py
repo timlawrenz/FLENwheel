@@ -48,9 +48,9 @@ TEMPLATES_DIR = TRAINING_DATA / "templates"
 SOURCES_DIR = TRAINING_DATA / "sources"
 GENERATED_DIR = TRAINING_DATA / "generated"
 
-# Model paths
-QWEN_BASE_PATH = "/mnt/essdee/ComfyUI/models/diffusers/qwen-image-edit-2509"
-QWEN_ANGLES_PATH = "/mnt/essdee/ComfyUI/models/diffusers/qwen-edit-multiple-angles"
+# Model paths (shared on NAS - accessible from both RTX 4090 and AMD servers)
+QWEN_BASE_PATH = "/mnt/nas-ai-models/diffusion_models/qwen-image-edit-2509"
+QWEN_ANGLES_PATH = "/mnt/nas-ai-models/diffusion_models/qwen-edit-multiple-angles"
 
 @dataclass
 class GenerationTask:
