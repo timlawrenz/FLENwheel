@@ -263,7 +263,7 @@ class GenerationOrchestrator:
             for prompt_data in expanded_prompts:
                 for model_name in models:
                     for seed_idx in range(seeds_per_prompt):
-                        seed = 1000000 + task_id + seed_idx
+                        seed = 1000000 + task_id
                         
                         # Determine LoRA if model specifies it
                         lora_name = None
@@ -291,6 +291,7 @@ class GenerationOrchestrator:
                         # Skip if already generated
                         if output_path.exists():
                             logger.debug(f"Skipping existing: {filename}")
+                            task_id += 1  # Still increment to avoid collision
                             continue
                         
                         all_tasks.append(task)

@@ -1,9 +1,9 @@
 # FLENwheel Project Status Report
 
-**Generated**: 2025-12-08 23:08 UTC  
+**Generated**: 2025-12-08 23:40 UTC  
 **Repository**: github.com/timlawrenz/FLENwheel  
-**Branch**: main (merged from volume)  
-**Status**: 🚧 Volume generation implementation in progress
+**Branch**: main  
+**Status**: 🚧 Transitioning from Diffusers to ComfyUI API
 
 ---
 
@@ -39,33 +39,35 @@
 
 ### 🚧 In Progress
 
-**Current Issue**: CUDA OOM during inference on RTX 4090
-- Model loads successfully (1.1s, 15GB VRAM)
-- Fails at inference step 0 (22.87GB / 23.49GB used)
-- Need: Attention slicing + VAE tiling for memory optimization
+**Current Status**: Migrating to ComfyUI API
+- Diffusers approach too slow: 24 min/image vs ComfyUI 60s/image (24x faster!)
+- Sequential CPU offload works but impractical for volume generation
+- Downloading Qwen-Image-Edit-2509 models for ComfyUI
+- Workflow: https://comfyui.org/en/wan22-animate-and-qwen-image-edit-2509
 
-**Status**: Implementing Option 1 (memory optimizations)
+**Timeline**: Testing in ComfyUI UI, then API automation
 
 ### ⏭️ Next Steps (Tonight)
 
-1. **Fix RTX 4090 inference** (30 mins):
-   - Add attention slicing
-   - Enable VAE tiling
-   - Add memory cleanup between generations
+1. **Test ComfyUI workflow** (in progress):
+   - Downloading models for Qwen-Image-Edit-2509
+   - Verify workflow runs in UI with correct paths
+   - Save workflow as API format → workflows/qwen_edit_api.json
    
-2. **Clean up templates** (15 mins):
-   - Remove qwen-angles (LoRA, not full model)
-   - Remove qwen-lighting (duplicate of qwen-base)
-   - Remove flux2-multiref (doesn't exist)
-   - Keep only qwen-base for initial run
+2. **Build ComfyUI API integration** (1-2 hours):
+   - Create lib/comfyui_client.py (WebSocket + REST)
+   - Create lib/comfyui_workflow.py (workflow parser)
+   - Integrate into generate_structured_volume.py
+   - Test single image generation
 
-3. **Launch overnight generation** (12-24 hours):
+3. **Launch overnight generation** (IF time permits):
    - Character: lando (55 source images)
    - Categories: portraits, body-poses, context, hands
-   - Expected: ~600 images (simplified from 1,184)
+   - Expected: ~500 images with qwen-base only
+   - Speed: 60s/image = 8.3 hours for 500 images
    - Output: /mnt/nas-ai-models/training-data/flenwheel/generated/lando/
 
-4. **Tomorrow**: Vote on generated images with 4-button UI
+4. **Tomorrow**: Review results, design voting UI
 
 ---
 
@@ -153,21 +155,26 @@
 
 ## Technical Issues & Solutions
 
-### Issue 1: CUDA OOM During Inference ⚠️
-**Problem**: Model loads (15GB) but fails during inference (needs 23GB+)
-**Solution**: 
-- enable_attention_slicing()
-- enable_vae_tiling()
-- torch.cuda.empty_cache() between generations
-**Status**: Implementing now
+### Issue 1: Diffusers Too Slow ⚠️
+**Problem**: 
+- Sequential CPU offload works but takes 24 min/image
+- 500 images × 24 min = 200 hours (8.3 days!)
+- ComfyUI generates same quality in 60s/image
+
+**Solution**: Switch to ComfyUI API
+- Use ComfyUI's optimized inference engine
+- 24x speedup: 8.3 hours vs 8.3 days
+- Same models, same quality, production speed
+
+**Status**: Downloading models, then building API integration
 
 ### Issue 2: Missing Models ✅
 **Problem**: Templates reference non-existent models
 - qwen-angles: LoRA file, not full pipeline
 - qwen-lighting: Same as qwen-base
 - flux2-multiref: Doesn't exist
-**Solution**: Simplify templates to qwen-base only
-**Status**: To implement after memory fix
+**Solution**: Removed from all templates
+**Status**: ✅ Completed - using qwen-base only
 
 ### Issue 3: AMD ROCm Incompatibility ✅
 **Problem**: gfx1151 missing HIP kernels for diffusion
@@ -242,10 +249,11 @@ NAS: /mnt/nas-ai-models/training-data/flenwheel/
 - Learn from blind volume first
 
 ### Technical
-✅ **Diffusers over ComfyUI for automation**
-- Programmatic control
-- Batch processing
-- Metadata tracking
+✅ **ComfyUI API for volume generation**
+- 24x faster than Diffusers sequential offload
+- Production-ready inference engine
+- WebSocket + REST API for automation
+- Programmatic workflow modification
 
 ✅ **NAS for shared storage**
 - Both servers access same models
@@ -321,44 +329,41 @@ NAS: /mnt/nas-ai-models/training-data/flenwheel/
 
 ## Next Immediate Actions
 
-**1. Fix RTX 4090 inference** (NOW):
-```python
-# Add to model_manager.py after loading:
-pipeline.enable_attention_slicing()
-pipeline.vae.enable_tiling()
-```
+**1. Download ComfyUI models** (IN PROGRESS):
+- Qwen-Image-Edit-2509 base model
+- Lightning 4-step LoRA
+- Verify paths in ComfyUI UI
 
-**2. Test with single image**:
-```bash
-python scripts/generate_structured_volume.py \
-  --character lando \
-  --categories test \
-  --parallel 1 \
-  --seeds 1
-```
+**2. Save workflow as API format**:
+- Load workflow in ComfyUI
+- Settings → Save (API Format)
+- Save to: workflows/qwen_edit_api.json
 
-**3. Launch full run**:
+**3. Build ComfyUI integration**:
+- lib/comfyui_client.py
+- lib/comfyui_workflow.py  
+- Test single generation
+
+**4. Launch overnight run** (IF ready):
 ```bash
 python scripts/generate_structured_volume.py \
   --character lando \
   --categories portraits,body-poses,context,hands \
   --parallel 1 \
-  --seeds 2
+  --seeds 1
 ```
-
-**4. Go to bed, wake up to data** 🌙
 
 ---
 
 ## Bottom Line
 
-**Status**: Infrastructure complete, fixing inference issues, ready for overnight production run.
+**Status**: Pivoting to ComfyUI API for 24x speedup. Models downloading, integration code ready to build.
 
-**Confidence**: High (80%) - Known issue with known solution
+**Confidence**: High (85%) - ComfyUI proven in other project (turbo-carnival)
 
-**Timeline**: On track for Week 1 LoRA training
+**Timeline**: Week 1 LoRA training achievable if overnight run completes
 
-**Next Milestone**: First successful batch generation (tonight)
+**Next Milestone**: ComfyUI workflow tested in UI, then API automation
 
 ---
 
