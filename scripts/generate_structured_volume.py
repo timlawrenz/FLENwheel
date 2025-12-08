@@ -162,15 +162,16 @@ class ModelManager:
             
             try:
                 # Load Qwen-Image-Edit pipeline
-                # Note: Using CPU mode on AMD APU due to ROCm kernel incompatibility
+                # Try fp16 on GPU - Ollama works, so GPU kernels partially functional
+                # fp16 has better ROCm support than bfloat16
                 pipeline = QwenImageEditPlusPipeline.from_pretrained(
                     model_path,
-                    torch_dtype=torch.float32  # CPU prefers float32
+                    torch_dtype=torch.float16  # Better ROCm kernel coverage
                 )
                 
-                # Force CPU mode (APU GPU kernels incompatible with this model)
-                pipeline.to("cpu")
-                logger.info(f"Pipeline running on CPU (96GB unified memory available)")
+                # Try GPU first - if kernels fail, we'll see specific error
+                # (Ollama proves GPU works for some ops on gfx1151)
+                logger.info(f"Pipeline loaded, attempting GPU inference on gfx1151")
                 
                 # Estimate VRAM (conservative)
                 estimated_vram = 15  # GB, conservative estimate for Qwen with offloading
