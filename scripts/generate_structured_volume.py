@@ -130,9 +130,9 @@ class TemplateLoader:
 class ModelManager:
     """Manages model loading and VRAM"""
     
-    def __init__(self, max_models: int = 4, max_vram_gb: int = 115):
+    def __init__(self, max_models: int = 4, max_vram_gb: int = 24):
         self.max_models = max_models
-        self.max_vram_gb = max_vram_gb
+        self.max_vram_gb = max_vram_gb  # RTX 4090: 24GB
         self.loaded_models = {}
         self.vram_usage_gb = 0
         self.lock = threading.Lock()
