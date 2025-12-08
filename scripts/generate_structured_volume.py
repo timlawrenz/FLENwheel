@@ -168,14 +168,15 @@ class ModelManager:
                 )
                 
                 # Memory optimizations for RTX 4090 (24GB VRAM limit)
-                pipeline.enable_model_cpu_offload()
+                # Use sequential CPU offload instead of model offload for better memory control
+                pipeline.enable_sequential_cpu_offload()
                 
                 # Critical: Reduce VRAM during inference
                 pipeline.enable_attention_slicing()  # Slice attention computation
                 if hasattr(pipeline, 'vae'):
                     pipeline.vae.enable_tiling()  # Tile VAE for lower VRAM
                 
-                logger.info(f"Pipeline loaded with CPU offload + memory optimizations")
+                logger.info(f"Pipeline loaded with sequential CPU offload + memory optimizations")
                 
                 # Estimate VRAM (conservative)
                 estimated_vram = 15  # GB, conservative estimate for Qwen with offloading
